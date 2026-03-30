@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+
+# Build output
+svelte-app/build
+svelte-app/.svelte-kit
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Misc
+untitled folder
