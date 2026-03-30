@@ -1,0 +1,22 @@
+{
+  "name": "currano-farms",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:svelte\"",
+    "dev:server": "node --watch server/index.js",
+    "dev:svelte": "cd svelte-app && npm run dev",
+    "build": "cd svelte-app && npm run build",
+    "start": "node server/index.js",
+    "start:svelte": "cd svelte-app && npm run build && cd .. && node server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

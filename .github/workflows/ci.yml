@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build & Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install server dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: cd svelte-app && npm ci
+
+      - name: Check server syntax
+        run: node -c server/index.js
+
+      - name: Svelte check
+        run: cd svelte-app && npx svelte-check --threshold error
+
+      - name: Build frontend
+        run: cd svelte-app && npm run build
