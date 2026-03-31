@@ -119,6 +119,10 @@ export class EggSystem {
       addNotification(`${spoiledCount} spoiled egg${spoiledCount > 1 ? 's' : ''} (-$${penalty})`, 'warning');
     }
 
+    if (white === 0 && blue === 0 && spoiledCount === 0) {
+      addNotification('No eggs to gather yet.', 'info');
+    }
+
     this.syncToStore();
   }
 

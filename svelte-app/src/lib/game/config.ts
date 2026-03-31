@@ -263,7 +263,7 @@ export const CONFIG = {
 
   // ─── INTERACTION ───────────────────────────────────────
   interaction: {
-    proximityRadius: 60,
+    proximityRadius: 90,
     cooldownMs: 500,
   },
 };

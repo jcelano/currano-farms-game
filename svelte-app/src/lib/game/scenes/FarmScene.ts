@@ -597,15 +597,15 @@ export class FarmScene extends Phaser.Scene {
     });
     this.interactionSystem.register(door);
 
-    // Nesting boxes (for egg gathering — tile 6, 46)
+    // Nesting boxes (for egg gathering — centered in nesting area)
     const nestingBox = new Interactable(this, {
       id: 'nesting-box',
-      x: 6 * tileSize,
+      x: 9 * tileSize,
       y: 46 * tileSize,
       label: 'Gather Eggs',
       staminaCost: CONFIG.stamina.costs.gatherEggs,
       color: 0xdeb887,
-      size: 16,
+      size: 24,
       onInteract: () => {
         this.eggSystem.gatherEggs();
       },
