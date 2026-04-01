@@ -22,10 +22,15 @@ app.get('/api/health', (_req, res) => {
 
 // In production, serve the built SvelteKit static files
 if (NODE_ENV === 'production') {
-  const serveDir = process.env.SERVE_DIR || path.join(__dirname, '..', 'svelte-app', 'build');
+  const serveDir = process.env.SERVE_DIR
+    ? path.resolve(process.env.SERVE_DIR)          // resolve relative env var to absolute
+    : path.join(__dirname, '..', 'svelte-app', 'build');
   app.use(express.static(serveDir));
+  // SPA catch-all: serve index.html for any unmatched route so client-side routing works
   app.get('*', (_req, res) => {
-    res.sendFile(path.join(serveDir, 'index.html'));
+    res.sendFile(path.join(serveDir, 'index.html'), (err) => {
+      if (err) res.status(500).send('Could not load app.');
+    });
   });
 }
 
