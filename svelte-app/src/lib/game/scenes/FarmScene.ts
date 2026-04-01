@@ -275,16 +275,19 @@ export class FarmScene extends Phaser.Scene {
       id: 'chicken-feeder',
       x: 7 * tileSize,
       y: 47 * tileSize,
-      label: 'Feed Chickens',
+      label: 'Fill Chicken Feeder',
       staminaCost: CONFIG.stamina.costs.feedAnimal,
       color: 0xdaa520,
       size: 16,
       spriteKey: 'feeder_sprite',
+      requiresItem: 'chicken-feed-scoop',
+      requiresItemHint: 'Grab chicken feed from the barn first',
       onInteract: () => {
         for (const chicken of this.chickenEntities) {
           chicken.feed(CONFIG.chickens.hunger.feederFill);
           chicken.syncToStore();
         }
+        addNotification('Chickens fed!', 'positive');
       },
     });
     this.interactionSystem.register(feeder);
@@ -726,6 +729,25 @@ export class FarmScene extends Phaser.Scene {
   }
 
   private createPhase2Interactables(tileSize: number) {
+    // ─── Barn Feed Storage (south edge of hay_storage, y=23) ───────
+    // Four feed scoops to pick up and carry to each animal's feeder
+    const feedScoops: Array<{ id: string; label: string; spriteKey: string; tx: number }> = [
+      { id: 'chicken-feed-scoop', label: 'Chicken Feed',  spriteKey: 'chicken_feed_scoop', tx: 17 },
+      { id: 'goat-feed-scoop',    label: 'Goat Feed',     spriteKey: 'goat_feed_scoop',    tx: 19 },
+      { id: 'horse-feed-scoop',   label: 'Horse Hay',     spriteKey: 'horse_feed_scoop',   tx: 21 },
+      { id: 'cat-food-scoop',     label: 'Cat Food',      spriteKey: 'cat_food_scoop',     tx: 23 },
+    ];
+    for (const s of feedScoops) {
+      const src = new Interactable(this, {
+        id: `${s.id}-source`, x: s.tx * tileSize, y: 23 * tileSize,
+        label: s.label, staminaCost: 0,
+        color: 0xdaa520, size: 14,
+        givesItem: { id: s.id, label: s.label, spriteKey: s.spriteKey },
+        onInteract: () => {},
+      });
+      this.interactionSystem.register(src);
+    }
+
     // ─── Well (center of farm) ───────
     const well = new Interactable(this, {
       id: 'well', x: 40 * tileSize, y: 28 * tileSize,
@@ -749,10 +771,13 @@ export class FarmScene extends Phaser.Scene {
     // ─── Goat Pen Interactables ───────
     const goatFeeder = new Interactable(this, {
       id: 'goat-feeder', x: 25 * tileSize, y: 37 * tileSize,
-      label: 'Feed Goats', staminaCost: CONFIG.stamina.costs.feedAnimal,
+      label: 'Fill Goat Feeder', staminaCost: CONFIG.stamina.costs.feedAnimal,
       color: 0xdaa520, size: 16, spriteKey: 'feeder_sprite',
+      requiresItem: 'goat-feed-scoop',
+      requiresItemHint: 'Grab goat feed from the barn first',
       onInteract: () => {
         for (const g of this.goatEntities) { g.feed(CONFIG.goats.hunger.feedFill); g.syncToStore(); }
+        addNotification('Goats fed!', 'positive');
       },
     });
     this.interactionSystem.register(goatFeeder);
@@ -789,10 +814,13 @@ export class FarmScene extends Phaser.Scene {
     // ─── Horse Barn/Paddock Interactables (at barn door, south edge y=22) ───────
     const hayRack = new Interactable(this, {
       id: 'horse-hay', x: 8 * tileSize, y: 24 * tileSize,
-      label: 'Feed Hay', staminaCost: CONFIG.stamina.costs.feedAnimal,
+      label: 'Fill Hay Rack', staminaCost: CONFIG.stamina.costs.feedAnimal,
       color: 0xdaa520, size: 16, spriteKey: 'feeder_sprite',
+      requiresItem: 'horse-feed-scoop',
+      requiresItemHint: 'Grab horse hay from the barn first',
       onInteract: () => {
         for (const h of this.horseEntities) { h.feed(CONFIG.horses.hunger.hayFill); h.syncToStore(); }
+        addNotification('Horses fed!', 'positive');
       },
     });
     this.interactionSystem.register(hayRack);
@@ -838,10 +866,13 @@ export class FarmScene extends Phaser.Scene {
     // ─── Cat Interactables (near farmhouse) ───────
     const catFood = new Interactable(this, {
       id: 'cat-food', x: 6 * tileSize, y: 24 * tileSize,
-      label: 'Feed Cats', staminaCost: CONFIG.stamina.costs.feedAnimal,
+      label: 'Fill Cat Bowl', staminaCost: CONFIG.stamina.costs.feedAnimal,
       color: 0xdaa520, size: 14, spriteKey: 'feeder_sprite',
+      requiresItem: 'cat-food-scoop',
+      requiresItemHint: 'Grab cat food from the barn first',
       onInteract: () => {
         for (const c of this.catEntities) { c.feed(CONFIG.cats.hunger.feedFill); c.syncToStore(); }
+        addNotification('Cats fed!', 'positive');
       },
     });
     this.interactionSystem.register(catFood);

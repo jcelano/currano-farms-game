@@ -220,7 +220,7 @@ export const gateStates = writable<Record<string, boolean>>({
 
 // ─── Character ────────────────────────────────────────────
 export type CharacterType = 'farmer' | 'farmer-girl';
-export const playerCharacter = writable<CharacterType>('farmer');
+export const playerCharacter = writable<CharacterType>('farmer-girl');
 
 // ─── Fences ────────────────────────────────────────────────
 export const fenceSections = writable<number[]>(new Array(20).fill(100));

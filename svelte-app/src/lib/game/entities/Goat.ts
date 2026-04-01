@@ -44,9 +44,9 @@ export class Goat extends Phaser.Physics.Arcade.Sprite {
     this.goatColor = config.color;
     this.bounds = bounds;
 
-    // Troublemakers start with higher mischief
+    // Troublemakers start with high mischief — Lela is basically already plotting
     if (config.personality === 'troublemaker') {
-      this.mischief = 40;
+      this.mischief = 80;
     }
 
     this.setDepth(4);

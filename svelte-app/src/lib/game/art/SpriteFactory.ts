@@ -558,6 +558,32 @@ export class SpriteFactory {
       gfx.generateTexture('brush_sprite', 12, 12);
       gfx.destroy();
     }
+
+    // Feed scoops — each animal type gets its own color
+    // chicken=golden grain, goat=green pellets, horse=tan hay, cat=orange kibble
+    const scoopDefs: [string, number][] = [
+      ['chicken_feed_scoop', 0xe8c84a],
+      ['goat_feed_scoop',    0x66bb44],
+      ['horse_feed_scoop',   0xc8a850],
+      ['cat_food_scoop',     0xe07830],
+    ];
+    for (const [key, fillColor] of scoopDefs) {
+      if (!scene.textures.exists(key)) {
+        const gfx = scene.add.graphics();
+        // Handle
+        gfx.fillStyle(0x8b5e2a, 1);
+        gfx.fillRect(6, 0, 3, 7);
+        // Scoop bowl sides
+        gfx.fillStyle(fillColor, 1);
+        gfx.fillRect(1, 6, 13, 8);
+        gfx.fillRect(2, 14, 11, 2);
+        // Feed highlight inside bowl
+        gfx.fillStyle(0xffffff, 0.25);
+        gfx.fillRect(3, 7, 8, 4);
+        gfx.generateTexture(key, 15, 16);
+        gfx.destroy();
+      }
+    }
   }
 
   // ─── Goats ──────────────────────────────────────────────
