@@ -110,7 +110,8 @@ export const chickens = writable<ChickenState[]>([]);
 export interface InteractionPromptState {
   label: string;
   cost: number;
-  available: boolean; // false if stamina too low
+  available: boolean;
+  warning?: string; // shown in red when unavailable (e.g. "Not enough stamina!")
 }
 
 export const interactionPrompt = writable<InteractionPromptState | null>(null);

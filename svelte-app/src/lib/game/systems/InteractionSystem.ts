@@ -72,25 +72,29 @@ export class InteractionSystem {
       const stamina = get(playerStamina);
       let label = closest.label;
       let available = stamina >= closest.staminaCost;
+      let warning: string | undefined = available ? undefined : 'Not enough stamina!';
 
       if (closest.givesItem) {
         // Item pickup source
         if (hasItem(closest.givesItem.id)) {
           label = `Already carrying ${closest.givesItem.label}`;
           available = false;
+          warning = undefined; // label says it all
         } else {
           label = `Pick up ${closest.givesItem.label}`;
-          available = true; // Pickups are always available (no stamina cost)
+          available = true;
+          warning = undefined;
         }
       } else if (closest.requiresItem) {
         // Requires an item to use
         if (!hasItem(closest.requiresItem)) {
           label = closest.requiresItemHint || `Need ${closest.requiresItem}`;
           available = false;
+          warning = undefined; // label says it all
         }
       }
 
-      interactionPrompt.set({ label, cost: closest.staminaCost, available });
+      interactionPrompt.set({ label, cost: closest.staminaCost, available, warning });
     } else {
       // No interactable nearby — check if we can pet a nearby cat
       let closestCatForPet: Cat | null = null;

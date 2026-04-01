@@ -11,8 +11,8 @@
     {#if $interactionPrompt.cost > 0}
       <span class="cost">(-{$interactionPrompt.cost} stamina)</span>
     {/if}
-    {#if !$interactionPrompt.available}
-      <span class="warning">Not enough stamina!</span>
+    {#if $interactionPrompt.warning}
+      <span class="warning">{$interactionPrompt.warning}</span>
     {/if}
   </div>
 {/if}

@@ -92,10 +92,33 @@ export class FarmScene extends Phaser.Scene {
     // Collision between player and buildings
     this.physics.add.collider(this.player, this.collisionGroup);
 
-    // Camera
+    // Camera — zoom in more on mobile so tiles are readable
+    const isMobile = this.sys.game.device.input.touch;
+    const defaultZoom = isMobile ? 2 : 1;
     this.cameras.main.setBounds(0, 0, widthPx, heightPx);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-    this.cameras.main.setZoom(1);
+    this.cameras.main.setZoom(defaultZoom);
+
+    // Pinch-to-zoom on mobile
+    if (isMobile) {
+      this.input.addPointer(1); // ensure at least 2 pointers registered
+      let lastPinchDist = 0;
+      this.input.on('pointermove', () => {
+        const p1 = this.input.pointer1;
+        const p2 = this.input.pointer2;
+        if (p1.isDown && p2.isDown) {
+          const dist = Phaser.Math.Distance.Between(p1.x, p1.y, p2.x, p2.y);
+          if (lastPinchDist > 0) {
+            const delta = dist - lastPinchDist;
+            const zoom = Phaser.Math.Clamp(this.cameras.main.zoom + delta * 0.005, 1, 4);
+            this.cameras.main.setZoom(zoom);
+          }
+          lastPinchDist = dist;
+        } else {
+          lastPinchDist = 0;
+        }
+      });
+    }
 
     // ─── Sprint 2: Time & Weather Systems ──────────────────
     this.timeSystem = new TimeSystem();
