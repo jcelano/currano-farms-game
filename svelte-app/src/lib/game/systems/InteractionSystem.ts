@@ -22,6 +22,14 @@ import {
   type VisitedAnimal,
   type CarriedItem,
 } from '$lib/stores/gameStore';
+import { ZONE_DEFS } from './ZoneManager';
+
+const TILE = 32;
+const _penDef = ZONE_DEFS.find(z => z.name === 'goat_pen')!;
+const PEN_RETURN_BOUNDS = {
+  minX: _penDef.x * TILE + 20, maxX: (_penDef.x + _penDef.width) * TILE - 20,
+  minY: _penDef.y * TILE + 20, maxY: (_penDef.y + _penDef.height) * TILE - 20,
+};
 
 export class InteractionSystem {
   private interactables: Interactable[] = [];
@@ -67,6 +75,16 @@ export class InteractionSystem {
     }
 
     this.currentInteractable = closest;
+
+    // ─── Leash escaped goat — highest priority prompt ─────────
+    if (hasItem('leash')) {
+      for (const goat of this.goatEntities) {
+        if (goat.escaped && goat.distanceTo(pos.x, pos.y) < 90) {
+          interactionPrompt.set({ label: `Leash ${goat.goatName} and return to pen`, cost: 0, available: true });
+          return; // skip all other prompts
+        }
+      }
+    }
 
     if (closest) {
       const stamina = get(playerStamina);
@@ -253,17 +271,22 @@ export class InteractionSystem {
   tryInteract(): boolean {
     if (this.cooldownTimer > 0) return false;
 
-    // Leash escaped goat if carrying leash and near escaped goat
+    // Leash escaped goat — highest priority action
     if (hasItem('leash')) {
       const pos = get(playerPosition);
       for (const goat of this.goatEntities) {
-        if (goat.escaped && goat.distanceTo(pos.x, pos.y) < 60) {
+        if (goat.escaped && goat.distanceTo(pos.x, pos.y) < 90) {
           removeFromInventory('leash');
-          // Return goat — use game event so GoatMischiefSystem handles it
           goat.escaped = false;
-          goat.mischief = Math.max(0, goat.mischief - 20);
+          goat.mischief = Math.max(0, goat.mischief - 30);
+          // Physically return goat to pen bounds
+          goat.setBounds(PEN_RETURN_BOUNDS);
+          goat.setPosition(
+            PEN_RETURN_BOUNDS.minX + 40,
+            PEN_RETURN_BOUNDS.minY + 40,
+          );
           goat.syncToStore();
-          addNotification(`${goat.goatName} has been leashed and returned to the pen!`, 'positive');
+          addNotification(`${goat.goatName} has been leashed and returned to the pen! 🐐`, 'positive');
           this.cooldownTimer = CONFIG.interaction.cooldownMs;
           return true;
         }

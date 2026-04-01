@@ -20,6 +20,7 @@
   import InventoryHud from '$lib/components/InventoryHud.svelte';
   import { saveSystem } from '$lib/game/systems/SaveSystem';
   import { addNotification } from '$lib/stores/gameStore';
+  import { VERSION_LABEL } from '$lib/version';
 
   onMount(async () => {
     // Check if we should load a save
@@ -56,6 +57,7 @@
   <PauseMenu />
   <VirtualJoystick />
   <SleepOverlay />
+  <span class="version-badge">{VERSION_LABEL}</span>
 </div>
 
 <style>
@@ -67,5 +69,17 @@
     height: 100dvh;
     overflow: hidden;
     background: #1a1a2e;
+  }
+
+  .version-badge {
+    position: absolute;
+    bottom: 4px;
+    left: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.18);
+    pointer-events: none;
+    z-index: 5;
+    letter-spacing: 0.03em;
   }
 </style>

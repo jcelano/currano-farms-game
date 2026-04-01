@@ -610,13 +610,26 @@ export class FarmScene extends Phaser.Scene {
     this.addCollisionRect(0, 0, wallThickness, heightPx);
     this.addCollisionRect(widthPx - 3 * tileSize, 0, 3 * tileSize, heightPx);
 
-    // Solid building zones (coop/farmhouse handled separately for gates)
-    const solidZones = ['horse_barn', 'equip_shed', 'hay_storage', 'feed_store'];
+    // Solid building zones (horse_barn handled manually below with open-front entrance)
+    const solidZones = ['equip_shed', 'hay_storage', 'feed_store'];
     for (const zone of ZONE_DEFS) {
       if (solidZones.includes(zone.name)) {
         this.addCollisionRect(zone.x * tileSize, zone.y * tileSize, zone.width * tileSize, zone.height * tileSize);
       }
     }
+    // Horse Barn — open-front building (x:46-58, y:34-41)
+    // North, west, east walls are solid; south wall has 4-tile opening at x:50-54
+    // so the player can walk into the barn from the paddock below.
+    const bn = ZONE_DEFS.find(z => z.name === 'horse_barn')!;
+    const bnX = bn.x * tileSize, bnY = bn.y * tileSize;
+    const bnW = bn.width * tileSize, bnH = bn.height * tileSize;
+    this.addCollisionRect(bnX,              bnY,              bnW,         tileSize); // North wall
+    this.addCollisionRect(bnX,              bnY + tileSize,   tileSize,    bnH - tileSize); // West wall
+    this.addCollisionRect(bnX + bnW - tileSize, bnY + tileSize, tileSize, bnH - tileSize); // East wall
+    // South wall with 4-tile opening at x:50-54
+    this.addCollisionRect(bnX,              bnY + bnH - tileSize, 4 * tileSize, tileSize); // left of opening
+    this.addCollisionRect(bnX + 8 * tileSize, bnY + bnH - tileSize, 4 * tileSize, tileSize); // right of opening
+
     // Farmhouse — walls with gate on west side (y=51-54)
     const fh = ZONE_DEFS.find(z => z.name === 'farmhouse')!;
     const fhX = fh.x * tileSize, fhY = fh.y * tileSize, fhW = fh.width * tileSize, fhH = fh.height * tileSize;
@@ -706,8 +719,8 @@ export class FarmScene extends Phaser.Scene {
 
   private spawnHorses(tileSize: number) {
     const bounds = {
-      minX: 4 * tileSize + 15, maxX: (4 + 16) * tileSize - 15,  // paddock x range stays same
-      minY: 22 * tileSize + 15, maxY: (22 + 8) * tileSize - 15,  // paddock now 8 tiles tall
+      minX: 48 * tileSize, maxX: 56 * tileSize,  // inside new paddock (x:46-58)
+      minY: 42 * tileSize, maxY: 45 * tileSize,  // inside new paddock (y:41-46)
     };
     CONFIG.horses.defaults.forEach((def, i) => {
       const horse = new Horse(this, i, { name: def.name, breed: def.breed, color: def.color }, bounds);
@@ -717,9 +730,9 @@ export class FarmScene extends Phaser.Scene {
   }
 
   private spawnCats(tileSize: number) {
-    // Cats live in the barn area
-    const barnX = 10 * tileSize;
-    const barnY = 26 * tileSize;
+    // Cats live inside the barn
+    const barnX = 52 * tileSize;
+    const barnY = 37 * tileSize;
     CONFIG.cats.defaults.forEach((def, i) => {
       const cat = new Cat(this, i, { name: def.name, color: def.color, pattern: def.pattern },
         barnX + Phaser.Math.Between(-30, 30), barnY + Phaser.Math.Between(-30, 30));
@@ -729,17 +742,17 @@ export class FarmScene extends Phaser.Scene {
   }
 
   private createPhase2Interactables(tileSize: number) {
-    // ─── Barn Feed Storage (south edge of hay_storage, y=23) ───────
-    // Four feed scoops to pick up and carry to each animal's feeder
+    // ─── Barn Interior — Feed Scoops (back wall, y=37) ───────
+    // Player enters barn through south opening (x:50-54) and finds supplies inside.
     const feedScoops: Array<{ id: string; label: string; spriteKey: string; tx: number }> = [
-      { id: 'chicken-feed-scoop', label: 'Chicken Feed',  spriteKey: 'chicken_feed_scoop', tx: 17 },
-      { id: 'goat-feed-scoop',    label: 'Goat Feed',     spriteKey: 'goat_feed_scoop',    tx: 19 },
-      { id: 'horse-feed-scoop',   label: 'Horse Hay',     spriteKey: 'horse_feed_scoop',   tx: 21 },
-      { id: 'cat-food-scoop',     label: 'Cat Food',      spriteKey: 'cat_food_scoop',     tx: 23 },
+      { id: 'chicken-feed-scoop', label: 'Chicken Feed',  spriteKey: 'chicken_feed_scoop', tx: 47 },
+      { id: 'goat-feed-scoop',    label: 'Goat Feed',     spriteKey: 'goat_feed_scoop',    tx: 49 },
+      { id: 'horse-feed-scoop',   label: 'Horse Hay',     spriteKey: 'horse_feed_scoop',   tx: 51 },
+      { id: 'cat-food-scoop',     label: 'Cat Food',      spriteKey: 'cat_food_scoop',     tx: 53 },
     ];
     for (const s of feedScoops) {
       const src = new Interactable(this, {
-        id: `${s.id}-source`, x: s.tx * tileSize, y: 23 * tileSize,
+        id: `${s.id}-source`, x: s.tx * tileSize, y: 37 * tileSize,
         label: s.label, staminaCost: 0,
         color: 0xdaa520, size: 14,
         givesItem: { id: s.id, label: s.label, spriteKey: s.spriteKey },
@@ -758,15 +771,23 @@ export class FarmScene extends Phaser.Scene {
     });
     this.interactionSystem.register(well);
 
-    // ─── Leash (near barn entrance) ───────
+    // ─── Barn Interior — Tools (hooks on back wall, y=36) ───────
     const leash = new Interactable(this, {
-      id: 'leash-source', x: 16 * tileSize, y: 24 * tileSize,
+      id: 'leash-source', x: 48 * tileSize, y: 36 * tileSize,
       label: 'Leash', staminaCost: 0,
       color: 0xdaa520, size: 12, spriteKey: 'leash_sprite',
       givesItem: { id: 'leash', label: 'Leash', spriteKey: 'leash_sprite' },
       onInteract: () => {},
     });
     this.interactionSystem.register(leash);
+    const brushSource = new Interactable(this, {
+      id: 'brush-source-barn', x: 53 * tileSize, y: 36 * tileSize,
+      label: 'Horse Brush', staminaCost: 0,
+      color: 0xaa8844, size: 14, spriteKey: 'brush_sprite',
+      givesItem: { id: 'brush', label: 'Brush', spriteKey: 'brush_sprite' },
+      onInteract: () => {},
+    });
+    this.interactionSystem.register(brushSource);
 
     // ─── Goat Pen Interactables ───────
     const goatFeeder = new Interactable(this, {
@@ -811,13 +832,13 @@ export class FarmScene extends Phaser.Scene {
     });
     this.interactionSystem.register(giveTreat);
 
-    // ─── Horse Barn/Paddock Interactables (at barn door, south edge y=22) ───────
+    // ─── Barn Interior — Horse & Cat Stations (y=39, along south interior wall) ───────
     const hayRack = new Interactable(this, {
-      id: 'horse-hay', x: 8 * tileSize, y: 24 * tileSize,
+      id: 'horse-hay', x: 48 * tileSize, y: 39 * tileSize,
       label: 'Fill Hay Rack', staminaCost: CONFIG.stamina.costs.feedAnimal,
       color: 0xdaa520, size: 16, spriteKey: 'feeder_sprite',
       requiresItem: 'horse-feed-scoop',
-      requiresItemHint: 'Grab horse hay from the barn first',
+      requiresItemHint: 'Grab horse hay from inside the barn first',
       onInteract: () => {
         for (const h of this.horseEntities) { h.feed(CONFIG.horses.hunger.hayFill); h.syncToStore(); }
         addNotification('Horses fed!', 'positive');
@@ -826,7 +847,7 @@ export class FarmScene extends Phaser.Scene {
     this.interactionSystem.register(hayRack);
 
     const horseTrough = new Interactable(this, {
-      id: 'horse-water', x: 12 * tileSize, y: 24 * tileSize,
+      id: 'horse-water', x: 51 * tileSize, y: 39 * tileSize,
       label: 'Fill Horse Trough', staminaCost: CONFIG.stamina.costs.waterAnimal,
       color: 0x4169e1, size: 16, spriteKey: 'waterer_sprite',
       requiresItem: 'water-bucket',
@@ -837,25 +858,15 @@ export class FarmScene extends Phaser.Scene {
       },
     });
     this.interactionSystem.register(horseTrough);
-    this.addWaterBar('horse-water', 12 * tileSize, 24 * tileSize);
-
-    // Brush pickup
-    const brushSource = new Interactable(this, {
-      id: 'brush-source', x: 10 * tileSize, y: 24 * tileSize,
-      label: 'Horse Brush', staminaCost: 0,
-      color: 0xaa8844, size: 14,
-      givesItem: { id: 'brush', label: 'Brush', spriteKey: 'brush_sprite' },
-      onInteract: () => {},
-    });
-    this.interactionSystem.register(brushSource);
+    this.addWaterBar('horse-water', 51 * tileSize, 39 * tileSize);
 
     // Brush use spot (in paddock, near horses)
     const brushUse = new Interactable(this, {
-      id: 'horse-brush-use', x: 10 * tileSize, y: 26 * tileSize,
+      id: 'horse-brush-use', x: 50 * tileSize, y: 44 * tileSize,
       label: 'Brush Horses', staminaCost: CONFIG.stamina.costs.brushHorse,
       color: 0xaa8844, size: 14,
       requiresItem: 'brush',
-      requiresItemHint: 'Pick up the brush first',
+      requiresItemHint: 'Pick up the brush from inside the barn first',
       onInteract: () => {
         for (const h of this.horseEntities) { h.brush(CONFIG.horses.coat.brushBoost); h.syncToStore(); }
         addNotification('Horses groomed! Coats looking shiny.', 'positive');
@@ -863,13 +874,13 @@ export class FarmScene extends Phaser.Scene {
     });
     this.interactionSystem.register(brushUse);
 
-    // ─── Cat Interactables (near farmhouse) ───────
+    // ─── Cat Stations (inside barn, y=39) ───────
     const catFood = new Interactable(this, {
-      id: 'cat-food', x: 6 * tileSize, y: 24 * tileSize,
+      id: 'cat-food', x: 54 * tileSize, y: 39 * tileSize,
       label: 'Fill Cat Bowl', staminaCost: CONFIG.stamina.costs.feedAnimal,
       color: 0xdaa520, size: 14, spriteKey: 'feeder_sprite',
       requiresItem: 'cat-food-scoop',
-      requiresItemHint: 'Grab cat food from the barn first',
+      requiresItemHint: 'Grab cat food from inside the barn first',
       onInteract: () => {
         for (const c of this.catEntities) { c.feed(CONFIG.cats.hunger.feedFill); c.syncToStore(); }
         addNotification('Cats fed!', 'positive');
@@ -878,7 +889,7 @@ export class FarmScene extends Phaser.Scene {
     this.interactionSystem.register(catFood);
 
     const catWater = new Interactable(this, {
-      id: 'cat-water', x: 6 * tileSize, y: 26 * tileSize,
+      id: 'cat-water', x: 56 * tileSize, y: 39 * tileSize,
       label: 'Water Cats', staminaCost: CONFIG.stamina.costs.waterAnimal,
       color: 0x4169e1, size: 14, spriteKey: 'waterer_sprite',
       requiresItem: 'water-bucket',
@@ -889,7 +900,7 @@ export class FarmScene extends Phaser.Scene {
       },
     });
     this.interactionSystem.register(catWater);
-    this.addWaterBar('cat-water', 6 * tileSize, 26 * tileSize);
+    this.addWaterBar('cat-water', 56 * tileSize, 39 * tileSize);
 
     // Pet cats: handled by walk-up proximity in InteractionSystem
 
@@ -1066,14 +1077,17 @@ export class FarmScene extends Phaser.Scene {
     });
     this.interactionSystem.register(coopGate);
 
-    // ─── Paddock (4,22 → 20,30) — now 8 tiles tall ───────
-    this.addCollisionRect(20 * T, 22 * T, T, 8 * T);      // East wall
-    // South wall — gate at east end (x=17-20)
-    this.addCollisionRect(4 * T, 30 * T, 13 * T, T);      // left of gate
-    this.addGateCollider('gate-paddock', 17 * T, 30 * T, gateW, T);
+    // ─── Paddock (46,41 → 58,46) — below barn, 5 tiles tall ───────
+    // North side provided by barn south walls; east aligns with hay_storage left wall
+    this.addCollisionRect(46 * T, 41 * T, T, 5 * T);      // West wall
+    this.addCollisionRect(57 * T, 41 * T, T, 5 * T);      // East wall (aligns with barn east wall)
+    // South wall with gate in center (x=51-54)
+    this.addCollisionRect(46 * T, 46 * T, 5 * T, T);      // left of gate
+    this.addGateCollider('gate-paddock', 51 * T, 46 * T, gateW, T);
+    this.addCollisionRect(54 * T, 46 * T, 4 * T, T);      // right of gate
     const paddockGate = new Interactable(this, {
-      id: 'gate-paddock', x: 18 * T + T / 2, y: 30 * T + T / 2,
-      label: 'Open/Close Gate', staminaCost: 0,
+      id: 'gate-paddock', x: 52 * T + T / 2, y: 46 * T + T / 2,
+      label: 'Open/Close Paddock Gate', staminaCost: 0,
       color: 0x8b6914, size: 12,
       onInteract: () => this.toggleGate('gate-paddock'),
     });

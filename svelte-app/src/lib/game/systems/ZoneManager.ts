@@ -19,18 +19,18 @@ export const ZONE_DEFS: ZoneDefinition[] = [
   // Chicken Coop & Yard (bottom-left)
   { name: 'coop', x: 4, y: 44, width: 10, height: 10, color: 0xcd853f, label: 'Chicken Coop' },
   { name: 'chicken_yard', x: 4, y: 36, width: 14, height: 8, color: 0x90ee90, label: 'Chicken Yard' },
-  // Horse Barn (upper-left)
-  { name: 'horse_barn', x: 4, y: 14, width: 12, height: 8, color: 0xa0522d, label: 'Horse Barn' },
-  // Paddock (below barn) — shortened to leave gap before goat pen
-  { name: 'paddock', x: 4, y: 22, width: 16, height: 8, color: 0x7ccd7c, label: 'Paddock' },
-  // Goat Pen (center-left) — moved down 2 tiles for walkway between paddock and pen
+  // Horse Barn — moved right, close to farmhouse start area so you see it immediately
+  { name: 'horse_barn', x: 46, y: 34, width: 12, height: 7, color: 0xa0522d, label: 'Horse Barn' },
+  // Paddock — directly below barn
+  { name: 'paddock', x: 46, y: 41, width: 12, height: 5, color: 0x7ccd7c, label: 'Paddock' },
+  // Goat Pen (center-left)
   { name: 'goat_pen', x: 22, y: 34, width: 12, height: 10, color: 0xdaa520, label: 'Goat Pen' },
-  // Flower Garden (right, near farmhouse)
-  { name: 'flower_garden', x: 48, y: 40, width: 10, height: 6, color: 0xff69b4, label: 'Flower Garden' },
+  // Flower Garden — moved to upper-left where barn used to be
+  { name: 'flower_garden', x: 4, y: 14, width: 12, height: 8, color: 0xff69b4, label: 'Flower Garden' },
   // Grape Orchard (upper-center)
   { name: 'grape_orchard', x: 24, y: 4, width: 14, height: 8, color: 0x6b3fa0, label: 'Grape Orchard' },
-  // Hay/Feed Storage (near horse barn)
-  { name: 'hay_storage', x: 16, y: 14, width: 8, height: 8, color: 0xf0e68c, label: 'Hay Storage' },
+  // Hay/Feed Storage — right side of barn
+  { name: 'hay_storage', x: 58, y: 34, width: 6, height: 7, color: 0xf0e68c, label: 'Feed Storage' },
   // Equipment Shed (center-right)
   { name: 'equip_shed', x: 48, y: 26, width: 8, height: 6, color: 0x808080, label: 'Equipment Shed' },
   // Pond (upper-right, decorative)

@@ -5,6 +5,7 @@
   import SaveSlotPicker from '$lib/components/SaveSlotPicker.svelte';
   import SettingsPanel from '$lib/components/SettingsPanel.svelte';
   import { currentSaveSlot } from '$lib/stores/gameStore';
+  import { VERSION_LABEL } from '$lib/version';
 
   let view = $state<'menu' | 'load' | 'settings'>('menu');
   let hasAutosave = $state(false);
@@ -39,6 +40,7 @@
     {#if view === 'menu'}
       <h1>Currano Farms</h1>
       <p class="tagline">A cozy New England farm sim</p>
+      <p class="version">{VERSION_LABEL}</p>
       <div class="menu-buttons">
         <button class="menu-btn primary" onclick={newGame}>New Game</button>
         <button class="menu-btn" onclick={continueGame} disabled={!hasAutosave}>
@@ -82,8 +84,15 @@
   .tagline {
     font-size: 1rem;
     color: #90ee90;
-    margin-bottom: 2.5rem;
+    margin-bottom: 0.4rem;
     opacity: 0.8;
+  }
+
+  .version {
+    font-size: 0.7rem;
+    color: #607060;
+    margin-bottom: 2.2rem;
+    letter-spacing: 0.04em;
   }
 
   .menu-buttons {
