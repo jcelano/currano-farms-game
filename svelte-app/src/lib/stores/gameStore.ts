@@ -214,6 +214,7 @@ export const gateStates = writable<Record<string, boolean>>({
   'gate-paddock': false,
   'gate-goat-pen': false,
   'gate-coop': false,
+  'gate-farmhouse': false,
 });
 
 // ─── Character ────────────────────────────────────────────

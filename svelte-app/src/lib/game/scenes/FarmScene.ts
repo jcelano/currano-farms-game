@@ -30,7 +30,7 @@ import { WaterSystem } from '../systems/WaterSystem';
 function tileRng(rng: Phaser.Math.RandomDataGenerator, tileSize: number): number {
   return rng.between(0, tileSize);
 }
-import { fps, gameReady, gamePaused, pauseMenuOpen, playerStamina, playerMoney, fenceSections, waterLevels, gateStates, currentSaveSlot, gameEvents, coopDoorOpen, get, addNotification } from '$lib/stores/gameStore';
+import { fps, gameReady, gamePaused, pauseMenuOpen, playerStamina, playerMoney, collectedEggs, fenceSections, waterLevels, gateStates, currentSaveSlot, gameEvents, coopDoorOpen, get, addNotification } from '$lib/stores/gameStore';
 
 export class FarmScene extends Phaser.Scene {
   private player!: Player;
@@ -286,11 +286,11 @@ export class FarmScene extends Phaser.Scene {
     this.interactionSystem.register(waterer);
     this.addWaterBar('chicken-waterer', 11 * tileSize, 47 * tileSize);
 
-    // Kitchen at farmhouse door (outside west wall)
+    // Kitchen inside farmhouse (player enters via west door)
     const kitchen = new Interactable(this, {
       id: 'kitchen',
-      x: 47 * tileSize,
-      y: 53 * tileSize,
+      x: 52 * tileSize,
+      y: 52 * tileSize,
       label: 'Eat Meal (+35 stamina)',
       staminaCost: 0,
       color: 0xff8c00,
@@ -584,13 +584,23 @@ export class FarmScene extends Phaser.Scene {
     this.addCollisionRect(0, 0, wallThickness, heightPx);
     this.addCollisionRect(widthPx - 3 * tileSize, 0, 3 * tileSize, heightPx);
 
-    // Note: 'coop' removed from solid zones so player can enter to feed, water, gather eggs
-    const solidZones = ['farmhouse', 'horse_barn', 'equip_shed', 'hay_storage', 'feed_store'];
+    // Solid building zones (coop/farmhouse handled separately for gates)
+    const solidZones = ['horse_barn', 'equip_shed', 'hay_storage', 'feed_store'];
     for (const zone of ZONE_DEFS) {
       if (solidZones.includes(zone.name)) {
         this.addCollisionRect(zone.x * tileSize, zone.y * tileSize, zone.width * tileSize, zone.height * tileSize);
       }
     }
+    // Farmhouse — walls with gate on west side (y=51-54)
+    const fh = ZONE_DEFS.find(z => z.name === 'farmhouse')!;
+    const fhX = fh.x * tileSize, fhY = fh.y * tileSize, fhW = fh.width * tileSize, fhH = fh.height * tileSize;
+    this.addCollisionRect(fhX, fhY, fhW, tileSize);           // North wall
+    this.addCollisionRect(fhX + fhW - tileSize, fhY, tileSize, fhH); // East wall
+    this.addCollisionRect(fhX, fhY + fhH - tileSize, fhW, tileSize); // South wall
+    // West wall — split for door at y=51-54
+    this.addCollisionRect(fhX, fhY, tileSize, 3 * tileSize);         // above door
+    this.addGateCollider('gate-farmhouse', fhX, fhY + 3 * tileSize, tileSize, 3 * tileSize);
+    this.addCollisionRect(fhX, fhY + 6 * tileSize, tileSize, 4 * tileSize); // below door
     const pond = ZONE_DEFS.find(z => z.name === 'pond')!;
     this.addCollisionRect(pond.x * tileSize, pond.y * tileSize, pond.width * tileSize, pond.height * tileSize);
   }
@@ -659,7 +669,7 @@ export class FarmScene extends Phaser.Scene {
   private spawnGoats(tileSize: number) {
     const bounds = {
       minX: 22 * tileSize + 10, maxX: (22 + 12) * tileSize - 10,
-      minY: 32 * tileSize + 10, maxY: (32 + 10) * tileSize - 10,
+      minY: 34 * tileSize + 10, maxY: (34 + 10) * tileSize - 10,
     };
     CONFIG.goats.defaults.forEach((def, i) => {
       const goat = new Goat(this, i, { name: def.name, personality: def.personality, color: def.color }, bounds);
@@ -670,8 +680,8 @@ export class FarmScene extends Phaser.Scene {
 
   private spawnHorses(tileSize: number) {
     const bounds = {
-      minX: 4 * tileSize + 15, maxX: (4 + 16) * tileSize - 15,
-      minY: 22 * tileSize + 15, maxY: (22 + 10) * tileSize - 15,
+      minX: 4 * tileSize + 15, maxX: (4 + 16) * tileSize - 15,  // paddock x range stays same
+      minY: 22 * tileSize + 15, maxY: (22 + 8) * tileSize - 15,  // paddock now 8 tiles tall
     };
     CONFIG.horses.defaults.forEach((def, i) => {
       const horse = new Horse(this, i, { name: def.name, breed: def.breed, color: def.color }, bounds);
@@ -715,7 +725,7 @@ export class FarmScene extends Phaser.Scene {
 
     // ─── Goat Pen Interactables ───────
     const goatFeeder = new Interactable(this, {
-      id: 'goat-feeder', x: 25 * tileSize, y: 35 * tileSize,
+      id: 'goat-feeder', x: 25 * tileSize, y: 37 * tileSize,
       label: 'Feed Goats', staminaCost: CONFIG.stamina.costs.feedAnimal,
       color: 0xdaa520, size: 16, spriteKey: 'feeder_sprite',
       onInteract: () => {
@@ -725,7 +735,7 @@ export class FarmScene extends Phaser.Scene {
     this.interactionSystem.register(goatFeeder);
 
     const goatWaterer = new Interactable(this, {
-      id: 'goat-waterer', x: 30 * tileSize, y: 35 * tileSize,
+      id: 'goat-waterer', x: 30 * tileSize, y: 37 * tileSize,
       label: 'Water Goats', staminaCost: CONFIG.stamina.costs.waterAnimal,
       color: 0x4169e1, size: 16, spriteKey: 'waterer_sprite',
       requiresItem: 'water-bucket',
@@ -736,10 +746,10 @@ export class FarmScene extends Phaser.Scene {
       },
     });
     this.interactionSystem.register(goatWaterer);
-    this.addWaterBar('goat-waterer', 30 * tileSize, 35 * tileSize);
+    this.addWaterBar('goat-waterer', 30 * tileSize, 37 * tileSize);
 
     const giveTreat = new Interactable(this, {
-      id: 'goat-treat', x: 28 * tileSize, y: 38 * tileSize,
+      id: 'goat-treat', x: 28 * tileSize, y: 40 * tileSize,
       label: 'Give Goat Treats', staminaCost: 1,
       color: 0xff8c00, size: 12, spriteKey: 'treat_sprite',
       onInteract: () => {
@@ -848,6 +858,26 @@ export class FarmScene extends Phaser.Scene {
       },
     });
     this.interactionSystem.register(fenceRepair);
+
+    // ─── Egg Selling Stand (Farmers Market) ───────
+    const eggStand = new Interactable(this, {
+      id: 'egg-stand', x: 38 * tileSize, y: 52 * tileSize,
+      label: 'Sell Eggs', staminaCost: 0,
+      color: 0xff8c00, size: 16, spriteKey: 'treat_sprite',
+      onInteract: () => {
+        const eggs = get(collectedEggs);
+        if (eggs.white === 0 && eggs.blue === 0) {
+          addNotification('No eggs to sell!', 'info');
+          return;
+        }
+        const earnings = eggs.white * CONFIG.economy.eggWhitePrice + eggs.blue * CONFIG.economy.eggBluePrice;
+        playerMoney.update(m => m + earnings);
+        const total = eggs.white + eggs.blue;
+        addNotification(`Sold ${total} egg${total > 1 ? 's' : ''} for $${earnings}!`, 'positive');
+        collectedEggs.set({ white: 0, blue: 0 });
+      },
+    });
+    this.interactionSystem.register(eggStand);
   }
 
   private addCollisionRect(x: number, y: number, w: number, h: number) {
@@ -939,6 +969,15 @@ export class FarmScene extends Phaser.Scene {
     const T = tileSize;
     const gateW = 3 * T; // 3-tile wide gate openings
 
+    // ─── Farmhouse door (west side) ───────
+    const fhDoor = new Interactable(this, {
+      id: 'gate-farmhouse', x: 48 * T - T / 2, y: 51 * T + T,
+      label: 'Open/Close Door', staminaCost: 0,
+      color: 0x8b4513, size: 14,
+      onInteract: () => this.toggleGate('gate-farmhouse'),
+    });
+    this.interactionSystem.register(fhDoor);
+
     // ─── Chicken Yard (4,36 → 18,44) ───────
     this.addCollisionRect(4 * T, 36 * T, 14 * T, T);     // North wall
     this.addCollisionRect(18 * T, 36 * T, T, 8 * T);      // East wall (outer edge)
@@ -973,28 +1012,28 @@ export class FarmScene extends Phaser.Scene {
     });
     this.interactionSystem.register(coopGate);
 
-    // ─── Paddock (4,22 → 20,32) ───────
-    this.addCollisionRect(20 * T, 22 * T, T, 10 * T);     // East wall (outer edge)
-    // South wall — gate at east end (x=17-20) reachable from outside
-    this.addCollisionRect(4 * T, 32 * T, 13 * T, T);      // left of gate
-    this.addGateCollider('gate-paddock', 17 * T, 32 * T, gateW, T);
+    // ─── Paddock (4,22 → 20,30) — now 8 tiles tall ───────
+    this.addCollisionRect(20 * T, 22 * T, T, 8 * T);      // East wall
+    // South wall — gate at east end (x=17-20)
+    this.addCollisionRect(4 * T, 30 * T, 13 * T, T);      // left of gate
+    this.addGateCollider('gate-paddock', 17 * T, 30 * T, gateW, T);
     const paddockGate = new Interactable(this, {
-      id: 'gate-paddock', x: 18 * T + T / 2, y: 32 * T + T / 2,
+      id: 'gate-paddock', x: 18 * T + T / 2, y: 30 * T + T / 2,
       label: 'Open/Close Gate', staminaCost: 0,
       color: 0x8b6914, size: 12,
       onInteract: () => this.toggleGate('gate-paddock'),
     });
     this.interactionSystem.register(paddockGate);
 
-    // ─── Goat Pen (22,32 → 34,42) ───────
-    this.addCollisionRect(22 * T, 32 * T, 12 * T, T);     // North wall
-    this.addCollisionRect(34 * T, 32 * T, T, 10 * T);     // East wall (outer edge)
-    this.addCollisionRect(22 * T, 42 * T, 12 * T, T);     // South wall
-    // West wall — gate at bottom (y=39-42) reachable from outside
-    this.addCollisionRect(22 * T, 32 * T, T, 7 * T);      // above gate
-    this.addGateCollider('gate-goat-pen', 22 * T, 39 * T, T, gateW);
+    // ─── Goat Pen (22,34 → 34,44) — moved down 2 tiles ───────
+    this.addCollisionRect(22 * T, 34 * T, 12 * T, T);     // North wall
+    this.addCollisionRect(34 * T, 34 * T, T, 10 * T);     // East wall
+    this.addCollisionRect(22 * T, 44 * T, 12 * T, T);     // South wall
+    // West wall — gate at bottom (y=41-44) reachable from outside
+    this.addCollisionRect(22 * T, 34 * T, T, 7 * T);      // above gate
+    this.addGateCollider('gate-goat-pen', 22 * T, 41 * T, T, gateW);
     const goatGate = new Interactable(this, {
-      id: 'gate-goat-pen', x: 22 * T - T / 2, y: 40 * T + T / 2,
+      id: 'gate-goat-pen', x: 22 * T - T / 2, y: 42 * T + T / 2,
       label: 'Open/Close Gate', staminaCost: 0,
       color: 0x8b6914, size: 12,
       onInteract: () => this.toggleGate('gate-goat-pen'),

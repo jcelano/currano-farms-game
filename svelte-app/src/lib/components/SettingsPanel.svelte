@@ -23,7 +23,11 @@
 
   <div class="setting-row">
     <label>Game Speed</label>
-    <button class="speed-btn" onclick={() => gameSpeedMultiplier.update(v => v === 1 ? 2 : 1)}>
+    <button class="speed-btn" onclick={() => gameSpeedMultiplier.update(v => {
+      const speeds = [1, 2, 5, 10];
+      const idx = speeds.indexOf(v);
+      return speeds[(idx + 1) % speeds.length];
+    })}>
       {$gameSpeedMultiplier}x
     </button>
   </div>

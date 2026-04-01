@@ -15,7 +15,7 @@ export class EggSystem {
   private henTimers: Map<number, number> = new Map();
   private nestingArea = { x: 5 * 32, y: 45 * 32, w: 8 * 32, h: 3 * 32 }; // Inside coop
   private pickupCooldown = 0;
-  private audioSystem: { playSFX: (type: string) => void } | null = null;
+  private audioSystem: { playSFX: (type: 'crow' | 'egg_pop' | 'door_latch' | 'cluck' | 'clean' | 'ambient') => void } | null = null;
 
   constructor(
     private scene: Phaser.Scene,
@@ -29,7 +29,7 @@ export class EggSystem {
     gameEvents.on('new-day', () => this.checkSpoilage());
   }
 
-  setAudioSystem(audio: { playSFX: (type: string) => void }) {
+  setAudioSystem(audio: { playSFX: (type: 'crow' | 'egg_pop' | 'door_latch' | 'cluck' | 'clean' | 'ambient') => void }) {
     this.audioSystem = audio;
   }
 

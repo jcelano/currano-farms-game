@@ -21,10 +21,10 @@ export const ZONE_DEFS: ZoneDefinition[] = [
   { name: 'chicken_yard', x: 4, y: 36, width: 14, height: 8, color: 0x90ee90, label: 'Chicken Yard' },
   // Horse Barn (upper-left)
   { name: 'horse_barn', x: 4, y: 14, width: 12, height: 8, color: 0xa0522d, label: 'Horse Barn' },
-  // Paddock (below barn)
-  { name: 'paddock', x: 4, y: 22, width: 16, height: 10, color: 0x7ccd7c, label: 'Paddock' },
-  // Goat Pen (center-left)
-  { name: 'goat_pen', x: 22, y: 32, width: 12, height: 10, color: 0xdaa520, label: 'Goat Pen' },
+  // Paddock (below barn) — shortened to leave gap before goat pen
+  { name: 'paddock', x: 4, y: 22, width: 16, height: 8, color: 0x7ccd7c, label: 'Paddock' },
+  // Goat Pen (center-left) — moved down 2 tiles for walkway between paddock and pen
+  { name: 'goat_pen', x: 22, y: 34, width: 12, height: 10, color: 0xdaa520, label: 'Goat Pen' },
   // Flower Garden (right, near farmhouse)
   { name: 'flower_garden', x: 48, y: 40, width: 10, height: 6, color: 0xff69b4, label: 'Flower Garden' },
   // Grape Orchard (upper-center)

@@ -26,8 +26,12 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
+  const speeds = [1, 2, 5, 10];
   function toggleSpeed() {
-    gameSpeedMultiplier.update(v => v === 1 ? 2 : 1);
+    gameSpeedMultiplier.update(v => {
+      const idx = speeds.indexOf(v);
+      return speeds[(idx + 1) % speeds.length];
+    });
   }
 
   function togglePause() {
