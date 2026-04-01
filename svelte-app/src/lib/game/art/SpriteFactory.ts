@@ -19,6 +19,7 @@ import Phaser from 'phaser';
 export class SpriteFactory {
   static generateAll(scene: Phaser.Scene) {
     SpriteFactory.generatePlayer(scene);
+    SpriteFactory.generatePlayerGirl(scene);
     SpriteFactory.generateEggs(scene);
     SpriteFactory.generatePredators(scene);
     SpriteFactory.generateInteractables(scene);
@@ -86,6 +87,71 @@ export class SpriteFactory {
     // Hat top
     gfx.fillStyle(0xa07828, 1);
     gfx.fillRect(7, -2, 10, 3);
+
+    gfx.generateTexture(key, w, h);
+    gfx.destroy();
+  }
+
+  static generatePlayerGirl(scene: Phaser.Scene) {
+    const key = 'player_girl';
+    if (scene.textures.exists(key)) return;
+
+    const gfx = scene.add.graphics();
+    const w = 24, h = 32;
+
+    // Boots
+    gfx.fillStyle(0x5c3a1e, 1);
+    gfx.fillRect(3, 26, 7, 6);
+    gfx.fillRect(14, 26, 7, 6);
+
+    // Jeans
+    gfx.fillStyle(0x4a6fa5, 1);
+    gfx.fillRect(4, 18, 7, 9);
+    gfx.fillRect(13, 18, 7, 9);
+
+    // Green flannel shirt body
+    gfx.fillStyle(0x3a8a4a, 1);
+    gfx.fillRect(4, 10, 16, 9);
+    // Flannel stripes
+    gfx.fillStyle(0x2d6e3a, 1);
+    gfx.fillRect(4, 12, 16, 2);
+    gfx.fillRect(4, 16, 16, 2);
+
+    // Arms
+    gfx.fillStyle(0x3a8a4a, 1);
+    gfx.fillRect(1, 11, 3, 7);
+    gfx.fillRect(20, 11, 3, 7);
+
+    // Hands
+    gfx.fillStyle(0xf5cba7, 1);
+    gfx.fillRect(1, 17, 3, 2);
+    gfx.fillRect(20, 17, 3, 2);
+
+    // Head
+    gfx.fillStyle(0xf5cba7, 1);
+    gfx.fillRect(6, 1, 12, 10);
+
+    // Red/auburn hair — longer, flowing
+    gfx.fillStyle(0xaa3322, 1);
+    gfx.fillRect(5, 0, 14, 4);
+    gfx.fillRect(4, 1, 3, 8);   // left side hair (longer)
+    gfx.fillRect(17, 1, 3, 8);  // right side hair (longer)
+    gfx.fillRect(5, 0, 14, 2);  // top
+
+    // Eyes (slightly larger/greener)
+    gfx.fillStyle(0x2e7d32, 1);
+    gfx.fillRect(8, 5, 2, 2);
+    gfx.fillRect(14, 5, 2, 2);
+
+    // Mouth
+    gfx.fillStyle(0xc0825a, 1);
+    gfx.fillRect(10, 8, 4, 1);
+
+    // Bandana instead of hat
+    gfx.fillStyle(0xcc4444, 1);
+    gfx.fillRect(5, 0, 14, 2);
+    gfx.fillStyle(0xaa3333, 1);
+    gfx.fillRect(7, -1, 10, 1);
 
     gfx.generateTexture(key, w, h);
     gfx.destroy();
@@ -390,6 +456,54 @@ export class SpriteFactory {
       gfx.fillRect(6, 3, 1, 3);
       gfx.fillRect(9, 2, 1, 4);
       gfx.generateTexture('kitchen_sprite', 16, 14);
+      gfx.destroy();
+    }
+
+    // Well (water source)
+    if (!scene.textures.exists('well_sprite')) {
+      const gfx = scene.add.graphics();
+      // Stone base (circular)
+      gfx.fillStyle(0x888888, 1);
+      gfx.fillRoundedRect(1, 6, 14, 8, 2);
+      // Stone details
+      gfx.fillStyle(0x777777, 1);
+      gfx.fillRect(3, 7, 3, 2);
+      gfx.fillRect(9, 8, 3, 2);
+      gfx.fillRect(5, 10, 4, 2);
+      // Water inside
+      gfx.fillStyle(0x4488cc, 0.8);
+      gfx.fillRoundedRect(3, 8, 10, 4, 1);
+      // Roof posts
+      gfx.fillStyle(0x6b4423, 1);
+      gfx.fillRect(3, 1, 2, 7);
+      gfx.fillRect(11, 1, 2, 7);
+      // Roof
+      gfx.fillStyle(0x8b5a2b, 1);
+      gfx.fillRect(1, 0, 14, 3);
+      // Bucket
+      gfx.fillStyle(0xaaaaaa, 1);
+      gfx.fillRect(7, 4, 3, 3);
+      gfx.generateTexture('well_sprite', 16, 14);
+      gfx.destroy();
+    }
+
+    // Water bucket
+    if (!scene.textures.exists('bucket_sprite')) {
+      const gfx = scene.add.graphics();
+      gfx.fillStyle(0x8b6914, 1);
+      gfx.fillRect(2, 3, 10, 8);
+      gfx.fillStyle(0xaaaaaa, 1);
+      gfx.fillRect(1, 3, 12, 1); // rim
+      gfx.fillRect(1, 10, 12, 1); // bottom band
+      // Water inside
+      gfx.fillStyle(0x4488cc, 0.8);
+      gfx.fillRect(3, 4, 8, 5);
+      // Handle
+      gfx.fillStyle(0x888888, 1);
+      gfx.fillRect(5, 0, 1, 3);
+      gfx.fillRect(8, 0, 1, 3);
+      gfx.fillRect(5, 0, 4, 1);
+      gfx.generateTexture('bucket_sprite', 14, 12);
       gfx.destroy();
     }
   }

@@ -11,7 +11,7 @@
   const statLabels = [
     { key: 'hunger', label: 'Hunger', icon: 'H' },
     { key: 'thirst', label: 'Thirst', icon: 'T' },
-    { key: 'happiness', label: 'Happy', icon: 'J' },
+    { key: 'happiness', label: 'Happiness', icon: 'J' },
     { key: 'health', label: 'Health', icon: '+' },
   ] as const;
 </script>
@@ -23,7 +23,7 @@
     <div class="stats">
       {#each statLabels as stat}
         <div class="stat-row">
-          <span class="stat-icon">{stat.icon}</span>
+          <span class="stat-icon" title={stat.label}>{stat.icon}</span>
           <div class="stat-bar-bg">
             <div
               class="stat-bar-fill"
@@ -87,6 +87,7 @@
     font-size: 9px;
     color: #aaa;
     width: 10px;
+    cursor: help;
   }
 
   .stat-bar-bg {

@@ -12,7 +12,15 @@ import {
   nearbyCat,
   playerStamina,
   playerPosition,
+  playerInventory,
+  visitedAnimals,
+  addToInventory,
+  removeFromInventory,
+  hasItem,
+  addNotification,
   get,
+  type VisitedAnimal,
+  type CarriedItem,
 } from '$lib/stores/gameStore';
 
 export class InteractionSystem {
@@ -23,6 +31,10 @@ export class InteractionSystem {
   private catEntities: Cat[] = [];
   private cooldownTimer = 0;
   private currentInteractable: Interactable | null = null;
+  private lastNearbyChicken: Chicken | null = null;
+  private lastNearbyGoat: Goat | null = null;
+  private lastNearbyHorse: Horse | null = null;
+  private lastNearbyCat: Cat | null = null;
 
   register(interactable: Interactable) {
     this.interactables.push(interactable);
@@ -57,11 +69,26 @@ export class InteractionSystem {
 
     if (closest) {
       const stamina = get(playerStamina);
-      interactionPrompt.set({
-        label: closest.label,
-        cost: closest.staminaCost,
-        available: stamina >= closest.staminaCost,
-      });
+      let label = closest.label;
+      let available = stamina >= closest.staminaCost;
+
+      if (closest.givesItem) {
+        // Item pickup source
+        if (hasItem(closest.givesItem.id)) {
+          label = `Already carrying ${closest.givesItem.label}`;
+          available = false;
+        } else {
+          label = `Pick up ${closest.givesItem.label}`;
+        }
+      } else if (closest.requiresItem) {
+        // Requires an item to use
+        if (!hasItem(closest.requiresItem)) {
+          label = closest.requiresItemHint || `Need ${closest.requiresItem}`;
+          available = false;
+        }
+      }
+
+      interactionPrompt.set({ label, cost: closest.staminaCost, available });
     } else {
       interactionPrompt.set(null);
     }
@@ -148,17 +175,105 @@ export class InteractionSystem {
     } else {
       nearbyCat.set(null);
     }
+
+    // ─── Record visited animals to journal when leaving proximity ───
+    if (this.lastNearbyChicken && !closestChicken) {
+      const c = this.lastNearbyChicken;
+      this.recordVisit('chicken', c.chickenId, c.chickenName, {
+        hunger: Math.round(c.hunger), thirst: Math.round(c.thirst),
+        happiness: Math.round(c.happiness), health: Math.round(c.health),
+      });
+    }
+    this.lastNearbyChicken = closestChicken;
+
+    if (this.lastNearbyGoat && !closestGoat) {
+      const g = this.lastNearbyGoat;
+      this.recordVisit('goat', g.goatId, g.goatName, {
+        hunger: Math.round(g.hunger), thirst: Math.round(g.thirst),
+        happiness: Math.round(g.happiness), health: Math.round(g.health),
+        mischief: Math.round(g.mischief),
+      });
+    }
+    this.lastNearbyGoat = closestGoat;
+
+    if (this.lastNearbyHorse && !closestHorse) {
+      const h = this.lastNearbyHorse;
+      this.recordVisit('horse', h.horseId, h.horseName, {
+        hunger: Math.round(h.hunger), thirst: Math.round(h.thirst),
+        happiness: Math.round(h.happiness), health: Math.round(h.health),
+        coat: Math.round(h.coat), hoofCondition: Math.round(h.hoofCondition),
+        training: Math.round(h.training),
+      });
+    }
+    this.lastNearbyHorse = closestHorse;
+
+    if (this.lastNearbyCat && !closestCat) {
+      const c = this.lastNearbyCat;
+      this.recordVisit('cat', c.catId, c.catName, {
+        hunger: Math.round(c.hunger), thirst: Math.round(c.thirst),
+        happiness: Math.round(c.happiness), health: Math.round(c.health),
+        attention: Math.round(c.attention), fleaCollar: Math.round(c.fleaCollar),
+      });
+    }
+    this.lastNearbyCat = closestCat;
+  }
+
+  private recordVisit(type: VisitedAnimal['type'], id: number, name: string, stats: Record<string, number>) {
+    visitedAnimals.update(list => {
+      const existing = list.findIndex(a => a.type === type && a.id === id);
+      const entry: VisitedAnimal = { type, id, name, stats, lastSeen: Date.now() };
+      if (existing >= 0) {
+        list[existing] = entry;
+      } else {
+        list.push(entry);
+      }
+      return [...list];
+    });
   }
 
   tryInteract(): boolean {
     if (!this.currentInteractable) return false;
     if (this.cooldownTimer > 0) return false;
 
+    const inter = this.currentInteractable;
     const stamina = get(playerStamina);
-    if (stamina < this.currentInteractable.staminaCost) return false;
+    if (stamina < inter.staminaCost) return false;
 
-    playerStamina.update(s => Math.max(0, s - this.currentInteractable!.staminaCost));
-    this.currentInteractable.onInteract();
+    // ─── Item pickup ─────────────────────────────────────
+    if (inter.givesItem) {
+      if (hasItem(inter.givesItem.id)) {
+        addNotification(`Already carrying ${inter.givesItem.label}.`, 'info');
+        return false;
+      }
+      const item: CarriedItem = {
+        id: inter.givesItem.id,
+        label: inter.givesItem.label,
+        spriteKey: inter.givesItem.spriteKey,
+        sourceId: inter.id,
+      };
+      addToInventory(item);
+      addNotification(`Picked up ${inter.givesItem.label}.`, 'info');
+      this.cooldownTimer = CONFIG.interaction.cooldownMs;
+      return true;
+    }
+
+    // ─── Item-required interaction ────────────────────────
+    if (inter.requiresItem) {
+      if (!hasItem(inter.requiresItem)) {
+        addNotification(inter.requiresItemHint || `You need a ${inter.requiresItem} first.`, 'warning');
+        return false;
+      }
+      // Use the item
+      playerStamina.update(s => Math.max(0, s - inter.staminaCost));
+      inter.onInteract();
+      removeFromInventory(inter.requiresItem);
+      this.cooldownTimer = CONFIG.interaction.cooldownMs;
+      return true;
+    }
+
+    // ─── Normal interaction ──────────────────────────────
+    playerStamina.update(s => Math.max(0, s - inter.staminaCost));
+    inter.onInteract();
     this.cooldownTimer = CONFIG.interaction.cooldownMs;
 
     return true;

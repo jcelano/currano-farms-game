@@ -8,6 +8,43 @@ export const fps = writable(0);
 export const devMode = writable(false);
 export const gameReady = writable(false);
 
+// ─── Player Inventory (Carry System) ──────────────────────
+export const MAX_INVENTORY = 3;
+
+export interface CarriedItem {
+  id: string;        // 'water-bucket', 'brush', 'pitchfork'
+  label: string;     // Display name
+  spriteKey: string;  // For visual indicator
+  sourceId: string;   // Interactable ID it came from (for return)
+}
+
+export const playerInventory = writable<CarriedItem[]>([]);
+
+export function addToInventory(item: CarriedItem): boolean {
+  const inv = get(playerInventory);
+  // Don't pick up duplicates
+  if (inv.some(i => i.id === item.id)) return false;
+  if (inv.length >= MAX_INVENTORY) {
+    // Drop oldest item
+    playerInventory.update(list => [...list.slice(1), item]);
+  } else {
+    playerInventory.update(list => [...list, item]);
+  }
+  return true;
+}
+
+export function removeFromInventory(itemId: string): CarriedItem | null {
+  const inv = get(playerInventory);
+  const item = inv.find(i => i.id === itemId);
+  if (!item) return null;
+  playerInventory.update(list => list.filter(i => i.id !== itemId));
+  return item;
+}
+
+export function hasItem(itemId: string): boolean {
+  return get(playerInventory).some(i => i.id === itemId);
+}
+
 // ─── Time System ───────────────────────────────────────────
 export interface GameTimeState {
   hour: number;
@@ -108,11 +145,13 @@ export interface NotificationState {
 }
 
 export const notifications = writable<NotificationState[]>([]);
+export const notificationHistory = writable<NotificationState[]>([]);
 
 let notifIdCounter = 0;
 export function addNotification(message: string, category: NotificationState['category'] = 'info') {
   const notif: NotificationState = { id: notifIdCounter++, message, category, timestamp: Date.now() };
   notifications.update(list => [...list, notif].slice(-5)); // Keep last 5
+  notificationHistory.update(list => [...list, notif].slice(-50)); // Keep last 50 for history
   // Auto-remove after 4 seconds
   setTimeout(() => {
     notifications.update(list => list.filter(n => n.id !== notif.id));
@@ -145,6 +184,40 @@ export interface CatState {
 }
 export const cats = writable<CatState[]>([]);
 export const nearbyCat = writable<CatState | null>(null);
+
+// ─── Visited Animals (Journal) ─────────────────────────────
+export interface VisitedAnimal {
+  type: 'chicken' | 'goat' | 'horse' | 'cat';
+  id: number;
+  name: string;
+  stats: Record<string, number | string | boolean>;
+  lastSeen: number; // timestamp
+}
+export const visitedAnimals = writable<VisitedAnimal[]>([]);
+export const journalOpen = writable(false);
+
+// ─── Notification Log ──────────────────────────────────────
+export const notificationLogOpen = writable(false);
+
+// ─── Water Levels ─────────────────────────────────────────
+// Tracks fill % (0-100) for each waterer/trough by interactable ID
+export const waterLevels = writable<Record<string, number>>({
+  'chicken-waterer': 50,
+  'goat-waterer': 50,
+  'horse-water': 50,
+  'cat-water': 50,
+});
+
+// ─── Gates ────────────────────────────────────────────────
+export const gateStates = writable<Record<string, boolean>>({
+  'gate-chicken-yard': false,
+  'gate-paddock': false,
+  'gate-goat-pen': false,
+});
+
+// ─── Character ────────────────────────────────────────────
+export type CharacterType = 'farmer' | 'farmer-girl';
+export const playerCharacter = writable<CharacterType>('farmer');
 
 // ─── Fences ────────────────────────────────────────────────
 export const fenceSections = writable<number[]>(new Array(20).fill(100));

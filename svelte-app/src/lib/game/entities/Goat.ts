@@ -44,6 +44,11 @@ export class Goat extends Phaser.Physics.Arcade.Sprite {
     this.goatColor = config.color;
     this.bounds = bounds;
 
+    // Troublemakers start with higher mischief
+    if (config.personality === 'troublemaker') {
+      this.mischief = 40;
+    }
+
     this.setDepth(4);
     this.setCollideWorldBounds(true);
     (this.body as Phaser.Physics.Arcade.Body).setSize(14, 10).setOffset(3, 6);

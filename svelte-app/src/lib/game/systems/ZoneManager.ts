@@ -31,8 +31,8 @@ export const ZONE_DEFS: ZoneDefinition[] = [
   { name: 'flower_garden', x: 48, y: 40, width: 10, height: 6, color: 0xff69b4, label: 'Flower Garden' },
   // Grape Orchard (upper-center)
   { name: 'grape_orchard', x: 24, y: 4, width: 14, height: 8, color: 0x6b3fa0, label: 'Grape Orchard' },
-  // Hay/Feed Storage (upper-right)
-  { name: 'hay_storage', x: 48, y: 14, width: 12, height: 8, color: 0xf0e68c, label: 'Hay Storage' },
+  // Hay/Feed Storage (near horse barn)
+  { name: 'hay_storage', x: 16, y: 14, width: 8, height: 8, color: 0xf0e68c, label: 'Hay Storage' },
   // Equipment Shed (center-right)
   { name: 'equip_shed', x: 48, y: 26, width: 8, height: 6, color: 0x808080, label: 'Equipment Shed' },
   // Pond (upper-right, decorative)

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { CONFIG } from '../config';
-import { playerPosition, playerStamina, currentWeather, joystickDirection, joystickInteract, get } from '$lib/stores/gameStore';
+import { playerPosition, playerStamina, playerInventory, playerCharacter, currentWeather, joystickDirection, joystickInteract, get } from '$lib/stores/gameStore';
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -14,6 +14,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private touchStartY = 0;
   private touchDirX = 0;
   private touchDirY = 0;
+
+  // Carry indicator
+  private carryIndicator: Phaser.GameObjects.Text;
+  private lastCarryLabel = '';
+  private currentCharacter = '';
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     // SpriteFactory.generatePlayer() is called in BootScene
@@ -41,6 +46,30 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.shiftKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
       this.spaceKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     }
+
+    // Carry indicator (text label above head)
+    this.carryIndicator = scene.add.text(x, y - 22, '', {
+      fontSize: '8px',
+      color: '#f0e68c',
+      fontFamily: 'monospace',
+      backgroundColor: '#000000aa',
+      padding: { x: 3, y: 1 },
+    });
+    this.carryIndicator.setOrigin(0.5);
+    this.carryIndicator.setDepth(7);
+    this.carryIndicator.setVisible(false);
+
+    // Character swap subscription
+    this.currentCharacter = get(playerCharacter);
+    playerCharacter.subscribe(char => {
+      if (char !== this.currentCharacter) {
+        this.currentCharacter = char;
+        const textureKey = char === 'farmer-girl' ? 'player_girl' : 'player_placeholder';
+        if (scene.textures.exists(textureKey)) {
+          this.setTexture(textureKey);
+        }
+      }
+    });
 
     scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       this.touchActive = true;
@@ -132,5 +161,22 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.setVelocity(vx * speed, vy * speed);
     playerPosition.set({ x: Math.round(this.x), y: Math.round(this.y) });
+
+    // Update carry indicator
+    const inv = get(playerInventory);
+    if (inv.length > 0) {
+      const label = inv.map(i => i.label).join(', ');
+      if (label !== this.lastCarryLabel) {
+        this.carryIndicator.setText(label);
+        this.lastCarryLabel = label;
+      }
+      this.carryIndicator.setPosition(this.x, this.y - 22);
+      this.carryIndicator.setVisible(true);
+    } else {
+      if (this.lastCarryLabel !== '') {
+        this.lastCarryLabel = '';
+        this.carryIndicator.setVisible(false);
+      }
+    }
   }
 }

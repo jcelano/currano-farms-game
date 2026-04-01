@@ -13,6 +13,35 @@
     if (value >= 40) return '#f39c12';
     return '#27ae60';
   }
+
+  interface StatDef { key: string; icon: string; label: string; colorFn?: (v: number) => string; }
+
+  const goatStats: StatDef[] = [
+    { key: 'hunger', icon: 'H', label: 'Hunger' },
+    { key: 'thirst', icon: 'T', label: 'Thirst' },
+    { key: 'happiness', icon: 'J', label: 'Happiness' },
+    { key: 'health', icon: '+', label: 'Health' },
+    { key: 'mischief', icon: 'M', label: 'Mischief (lower is better)', colorFn: mischiefColor },
+  ];
+
+  const horseStats: StatDef[] = [
+    { key: 'hunger', icon: 'H', label: 'Hunger' },
+    { key: 'thirst', icon: 'T', label: 'Thirst' },
+    { key: 'happiness', icon: 'J', label: 'Happiness' },
+    { key: 'health', icon: '+', label: 'Health' },
+    { key: 'coat', icon: 'C', label: 'Coat condition' },
+    { key: 'hoofCondition', icon: 'Hf', label: 'Hoof condition' },
+    { key: 'training', icon: 'Tr', label: 'Training level' },
+  ];
+
+  const catStats: StatDef[] = [
+    { key: 'hunger', icon: 'H', label: 'Hunger' },
+    { key: 'thirst', icon: 'T', label: 'Thirst' },
+    { key: 'happiness', icon: 'J', label: 'Happiness' },
+    { key: 'health', icon: '+', label: 'Health' },
+    { key: 'attention', icon: 'A', label: 'Attention (petting)' },
+    { key: 'fleaCollar', icon: 'FC', label: 'Flea collar effectiveness' },
+  ];
 </script>
 
 {#if $gameReady}
@@ -21,11 +50,14 @@
       <div class="animal-name">{$nearbyGoat.name}</div>
       <div class="animal-breed">Nigerian Dwarf ({$nearbyGoat.personality}){$nearbyGoat.escaped ? ' - ESCAPED!' : ''}</div>
       <div class="stats">
-        <div class="stat-row"><span class="stat-label">H</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyGoat.hunger}%;background:{statColor($nearbyGoat.hunger)}"></div></div><span class="stat-val">{$nearbyGoat.hunger}</span></div>
-        <div class="stat-row"><span class="stat-label">T</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyGoat.thirst}%;background:{statColor($nearbyGoat.thirst)}"></div></div><span class="stat-val">{$nearbyGoat.thirst}</span></div>
-        <div class="stat-row"><span class="stat-label">J</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyGoat.happiness}%;background:{statColor($nearbyGoat.happiness)}"></div></div><span class="stat-val">{$nearbyGoat.happiness}</span></div>
-        <div class="stat-row"><span class="stat-label">+</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyGoat.health}%;background:{statColor($nearbyGoat.health)}"></div></div><span class="stat-val">{$nearbyGoat.health}</span></div>
-        <div class="stat-row"><span class="stat-label mischief-label">M</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyGoat.mischief}%;background:{mischiefColor($nearbyGoat.mischief)}"></div></div><span class="stat-val">{$nearbyGoat.mischief}</span></div>
+        {#each goatStats as stat}
+          {@const val = $nearbyGoat[stat.key as keyof typeof $nearbyGoat] as number}
+          <div class="stat-row">
+            <span class="stat-label" class:mischief-label={stat.key === 'mischief'} title={stat.label}>{stat.icon}</span>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{val}%;background:{(stat.colorFn || statColor)(val)}"></div></div>
+            <span class="stat-val">{val}</span>
+          </div>
+        {/each}
       </div>
     </div>
   {/if}
@@ -35,13 +67,14 @@
       <div class="animal-name">{$nearbyHorse.name}</div>
       <div class="animal-breed">{$nearbyHorse.breed}</div>
       <div class="stats">
-        <div class="stat-row"><span class="stat-label">H</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyHorse.hunger}%;background:{statColor($nearbyHorse.hunger)}"></div></div><span class="stat-val">{$nearbyHorse.hunger}</span></div>
-        <div class="stat-row"><span class="stat-label">T</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyHorse.thirst}%;background:{statColor($nearbyHorse.thirst)}"></div></div><span class="stat-val">{$nearbyHorse.thirst}</span></div>
-        <div class="stat-row"><span class="stat-label">J</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyHorse.happiness}%;background:{statColor($nearbyHorse.happiness)}"></div></div><span class="stat-val">{$nearbyHorse.happiness}</span></div>
-        <div class="stat-row"><span class="stat-label">+</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyHorse.health}%;background:{statColor($nearbyHorse.health)}"></div></div><span class="stat-val">{$nearbyHorse.health}</span></div>
-        <div class="stat-row"><span class="stat-label">C</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyHorse.coat}%;background:{statColor($nearbyHorse.coat)}"></div></div><span class="stat-val">{$nearbyHorse.coat}</span></div>
-        <div class="stat-row"><span class="stat-label">Hf</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyHorse.hoofCondition}%;background:{statColor($nearbyHorse.hoofCondition)}"></div></div><span class="stat-val">{$nearbyHorse.hoofCondition}</span></div>
-        <div class="stat-row"><span class="stat-label">Tr</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyHorse.training}%;background:{statColor($nearbyHorse.training)}"></div></div><span class="stat-val">{$nearbyHorse.training}</span></div>
+        {#each horseStats as stat}
+          {@const val = $nearbyHorse[stat.key as keyof typeof $nearbyHorse] as number}
+          <div class="stat-row">
+            <span class="stat-label" title={stat.label}>{stat.icon}</span>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{val}%;background:{statColor(val)}"></div></div>
+            <span class="stat-val">{val}</span>
+          </div>
+        {/each}
       </div>
     </div>
   {/if}
@@ -51,12 +84,14 @@
       <div class="animal-name">{$nearbyCat.name}</div>
       <div class="animal-breed">{$nearbyCat.pattern} cat</div>
       <div class="stats">
-        <div class="stat-row"><span class="stat-label">H</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyCat.hunger}%;background:{statColor($nearbyCat.hunger)}"></div></div><span class="stat-val">{$nearbyCat.hunger}</span></div>
-        <div class="stat-row"><span class="stat-label">T</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyCat.thirst}%;background:{statColor($nearbyCat.thirst)}"></div></div><span class="stat-val">{$nearbyCat.thirst}</span></div>
-        <div class="stat-row"><span class="stat-label">J</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyCat.happiness}%;background:{statColor($nearbyCat.happiness)}"></div></div><span class="stat-val">{$nearbyCat.happiness}</span></div>
-        <div class="stat-row"><span class="stat-label">+</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyCat.health}%;background:{statColor($nearbyCat.health)}"></div></div><span class="stat-val">{$nearbyCat.health}</span></div>
-        <div class="stat-row"><span class="stat-label">A</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyCat.attention}%;background:{statColor($nearbyCat.attention)}"></div></div><span class="stat-val">{$nearbyCat.attention}</span></div>
-        <div class="stat-row"><span class="stat-label">FC</span><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{$nearbyCat.fleaCollar}%;background:{statColor($nearbyCat.fleaCollar)}"></div></div><span class="stat-val">{$nearbyCat.fleaCollar}</span></div>
+        {#each catStats as stat}
+          {@const val = $nearbyCat[stat.key as keyof typeof $nearbyCat] as number}
+          <div class="stat-row">
+            <span class="stat-label" title={stat.label}>{stat.icon}</span>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:{val}%;background:{statColor(val)}"></div></div>
+            <span class="stat-val">{val}</span>
+          </div>
+        {/each}
       </div>
     </div>
   {/if}
@@ -90,7 +125,7 @@
   .animal-breed { font-size: 9px; color: #888; margin-bottom: 6px; }
   .stats { display: flex; flex-direction: column; gap: 3px; }
   .stat-row { display: flex; align-items: center; gap: 4px; }
-  .stat-label { font-size: 9px; color: #aaa; width: 14px; }
+  .stat-label { font-size: 9px; color: #aaa; width: 14px; cursor: help; }
   .mischief-label { color: #ff8800; }
   .stat-bar-bg { flex: 1; height: 6px; background: #333; border-radius: 3px; overflow: hidden; }
   .stat-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }

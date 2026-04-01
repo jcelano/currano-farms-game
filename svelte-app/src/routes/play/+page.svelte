@@ -10,9 +10,14 @@
   import ChickenInfoPanel from '$lib/components/ChickenInfoPanel.svelte';
   import AnimalInfoPanel from '$lib/components/AnimalInfoPanel.svelte';
   import NotificationToast from '$lib/components/NotificationToast.svelte';
+  import NotificationLog from '$lib/components/NotificationLog.svelte';
   import EggCounter from '$lib/components/EggCounter.svelte';
   import PauseMenu from '$lib/components/PauseMenu.svelte';
   import VirtualJoystick from '$lib/components/VirtualJoystick.svelte';
+  import Minimap from '$lib/components/Minimap.svelte';
+  import AnimalJournal from '$lib/components/AnimalJournal.svelte';
+  import HelpPanel from '$lib/components/HelpPanel.svelte';
+  import InventoryHud from '$lib/components/InventoryHud.svelte';
   import { saveSystem } from '$lib/game/systems/SaveSystem';
   import { addNotification } from '$lib/stores/gameStore';
 
@@ -36,9 +41,14 @@
 <div class="play-page">
   <GameCanvas />
   <TimeHud />
+  <Minimap />
+  <NotificationLog />
+  <AnimalJournal />
+  <HelpPanel />
   <EggCounter />
   <StaminaBar />
   <InteractionPrompt />
+  <InventoryHud />
   <ChickenInfoPanel />
   <AnimalInfoPanel />
   <NotificationToast />

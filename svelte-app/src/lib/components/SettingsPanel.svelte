@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { musicVolume, sfxVolume, gameSpeedMultiplier } from '$lib/stores/gameStore';
+  import { musicVolume, sfxVolume, gameSpeedMultiplier, playerCharacter } from '$lib/stores/gameStore';
 
   let { onClose }: { onClose: () => void } = $props();
 </script>
@@ -28,13 +28,34 @@
     </button>
   </div>
 
+  <div class="character-section">
+    <h4>Character</h4>
+    <div class="char-options">
+      <button
+        class="char-btn"
+        class:selected={$playerCharacter === 'farmer'}
+        onclick={() => playerCharacter.set('farmer')}
+      >
+        <div class="char-preview farmer-preview"></div>
+        <span>Farmer</span>
+      </button>
+      <button
+        class="char-btn"
+        class:selected={$playerCharacter === 'farmer-girl'}
+        onclick={() => playerCharacter.set('farmer-girl')}
+      >
+        <div class="char-preview girl-preview"></div>
+        <span>Farmer Girl</span>
+      </button>
+    </div>
+  </div>
+
   <div class="controls-section">
     <h4>Controls</h4>
     <div class="control-row"><span class="key">WASD / Arrows</span> Move</div>
     <div class="control-row"><span class="key">Shift</span> Run</div>
     <div class="control-row"><span class="key">Space</span> Interact</div>
     <div class="control-row"><span class="key">ESC</span> Pause Menu</div>
-    <div class="control-row"><span class="key">` (backtick)</span> Dev HUD</div>
   </div>
 
   <button class="back-btn" onclick={onClose}>Back</button>
@@ -67,6 +88,70 @@
     cursor: pointer;
     font-family: inherit;
     font-size: 14px;
+  }
+
+  .character-section { text-align: center; }
+
+  .char-options {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .char-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    color: #d0dae4;
+    font-family: inherit;
+    font-size: 11px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transition: border-color 0.2s;
+  }
+
+  .char-btn:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+
+  .char-btn.selected {
+    border-color: #f0e68c;
+    background: rgba(240, 230, 140, 0.1);
+  }
+
+  .char-preview {
+    width: 24px;
+    height: 32px;
+    border-radius: 3px;
+    image-rendering: pixelated;
+  }
+
+  .farmer-preview {
+    background: linear-gradient(
+      to bottom,
+      #a07828 0%, #a07828 8%,
+      #6b3a2a 8%, #6b3a2a 15%,
+      #f5cba7 15%, #f5cba7 35%,
+      #cc4444 35%, #cc4444 60%,
+      #4a6fa5 60%, #4a6fa5 82%,
+      #5c3a1e 82%, #5c3a1e 100%
+    );
+  }
+
+  .girl-preview {
+    background: linear-gradient(
+      to bottom,
+      #cc4444 0%, #cc4444 8%,
+      #aa3322 8%, #aa3322 15%,
+      #f5cba7 15%, #f5cba7 35%,
+      #3a8a4a 35%, #3a8a4a 60%,
+      #4a6fa5 60%, #4a6fa5 82%,
+      #5c3a1e 82%, #5c3a1e 100%
+    );
   }
 
   .controls-section { text-align: left; font-family: 'Courier New', monospace; }

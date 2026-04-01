@@ -25,11 +25,12 @@ import { GoatMischiefSystem } from '../systems/GoatMischiefSystem';
 import { FenceSystem } from '../systems/FenceSystem';
 import { HorseCareSystem } from '../systems/HorseCareSystem';
 import { CatAttentionSystem } from '../systems/CatAttentionSystem';
+import { WaterSystem } from '../systems/WaterSystem';
 
 function tileRng(rng: Phaser.Math.RandomDataGenerator, tileSize: number): number {
   return rng.between(0, tileSize);
 }
-import { fps, gameReady, gamePaused, pauseMenuOpen, playerStamina, playerMoney, fenceSections, currentSaveSlot, gameEvents, coopDoorOpen, get, addNotification } from '$lib/stores/gameStore';
+import { fps, gameReady, gamePaused, pauseMenuOpen, playerStamina, playerMoney, fenceSections, waterLevels, gateStates, currentSaveSlot, gameEvents, coopDoorOpen, get, addNotification } from '$lib/stores/gameStore';
 
 export class FarmScene extends Phaser.Scene {
   private player!: Player;
@@ -56,6 +57,9 @@ export class FarmScene extends Phaser.Scene {
   private fenceSystem!: FenceSystem;
   private horseCareSystem!: HorseCareSystem;
   private catAttentionSystem!: CatAttentionSystem;
+  private waterSystem!: WaterSystem;
+  private waterBars: Map<string, { bg: Phaser.GameObjects.Rectangle; fill: Phaser.GameObjects.Rectangle }> = new Map();
+  private gateColliders: Map<string, Phaser.GameObjects.Rectangle> = new Map();
 
   constructor() {
     super({ key: 'FarmScene' });
@@ -116,6 +120,7 @@ export class FarmScene extends Phaser.Scene {
     this.coopCleaningSystem = new CoopCleaningSystem(this, this.chickenEntities);
     this.hatchingSystem = new HatchingSystem(this, this.chickenEntities, () => this.eggSystem['eggEntities']);
     this.audioSystem = new AudioSystem(this);
+    this.eggSystem.setAudioSystem(this.audioSystem);
     this.createSprint5Interactables(tileSize);
 
     // ─── Phase 2: Goats, Horses, Cats ───────────────────────
@@ -132,7 +137,9 @@ export class FarmScene extends Phaser.Scene {
     this.fenceSystem = new FenceSystem();
     this.horseCareSystem = new HorseCareSystem(this.horseEntities);
     this.catAttentionSystem = new CatAttentionSystem(this.catEntities);
+    this.waterSystem = new WaterSystem(this.chickenEntities, this.goatEntities, this.horseEntities, this.catEntities);
     this.createPhase2Interactables(tileSize);
+    this.createFences(tileSize);
 
     // Wire player spacebar to interaction system
     this.player.onInteract = () => this.interactionSystem.tryInteract();
@@ -200,6 +207,8 @@ export class FarmScene extends Phaser.Scene {
       this.fenceSystem.update();
       this.horseCareSystem.update();
       this.catAttentionSystem.update();
+      this.waterSystem.update();
+      this.updateWaterBars();
     }
 
     // Player always updates (but velocity is 0 when paused via input)
@@ -246,6 +255,7 @@ export class FarmScene extends Phaser.Scene {
       staminaCost: CONFIG.stamina.costs.feedAnimal,
       color: 0xdaa520,
       size: 16,
+      spriteKey: 'feeder_sprite',
       onInteract: () => {
         for (const chicken of this.chickenEntities) {
           chicken.feed(CONFIG.chickens.hunger.feederFill);
@@ -255,7 +265,7 @@ export class FarmScene extends Phaser.Scene {
     });
     this.interactionSystem.register(feeder);
 
-    // Waterer inside coop (tile 11, 47)
+    // Waterer inside coop (tile 11, 47) — requires water bucket
     const waterer = new Interactable(this, {
       id: 'chicken-waterer',
       x: 11 * tileSize,
@@ -264,24 +274,27 @@ export class FarmScene extends Phaser.Scene {
       staminaCost: CONFIG.stamina.costs.waterAnimal,
       color: 0x4169e1,
       size: 16,
+      spriteKey: 'waterer_sprite',
+      requiresItem: 'water-bucket',
+      requiresItemHint: 'Fill a bucket at the well first',
       onInteract: () => {
-        for (const chicken of this.chickenEntities) {
-          chicken.water(CONFIG.chickens.thirst.watererFill);
-          chicken.syncToStore();
-        }
+        waterLevels.update(l => ({ ...l, 'chicken-waterer': Math.min(100, (l['chicken-waterer'] ?? 0) + CONFIG.water.bucketFill) }));
+        addNotification('Filled chicken waterer!', 'positive');
       },
     });
     this.interactionSystem.register(waterer);
+    this.addWaterBar('chicken-waterer', 11 * tileSize, 47 * tileSize);
 
-    // Kitchen in farmhouse (tile 52, 52) for meals
+    // Kitchen at farmhouse door (outside west wall)
     const kitchen = new Interactable(this, {
       id: 'kitchen',
-      x: 52 * tileSize,
-      y: 52 * tileSize,
+      x: 47 * tileSize,
+      y: 53 * tileSize,
       label: 'Eat Meal (+35 stamina)',
       staminaCost: 0,
       color: 0xff8c00,
       size: 16,
+      spriteKey: 'kitchen_sprite',
       onInteract: () => {
         playerStamina.update(s => Math.min(CONFIG.stamina.max, s + CONFIG.stamina.regenPerMeal));
       },
@@ -591,44 +604,49 @@ export class FarmScene extends Phaser.Scene {
       staminaCost: 0,
       color: 0x8b4513,
       size: 14,
+      spriteKey: 'door_closed',
       onInteract: () => {
         this.coopDoorSystem.toggle();
       },
     });
     this.interactionSystem.register(door);
 
-    // Nesting boxes (for egg gathering — centered in nesting area)
-    const nestingBox = new Interactable(this, {
-      id: 'nesting-box',
-      x: 9 * tileSize,
-      y: 46 * tileSize,
-      label: 'Gather Eggs',
-      staminaCost: CONFIG.stamina.costs.gatherEggs,
-      color: 0xdeb887,
-      size: 24,
-      onInteract: () => {
-        this.eggSystem.gatherEggs();
-      },
-    });
-    this.interactionSystem.register(nestingBox);
+    // Nesting area — eggs are now collected by walking over them
   }
 
   private createSprint5Interactables(tileSize: number) {
-    // Pitchfork for coop cleaning (tile 8, 49)
+    // Pitchfork pickup (tile 8, 49)
     const pitchfork = new Interactable(this, {
-      id: 'pitchfork',
+      id: 'pitchfork-source',
       x: 8 * tileSize,
       y: 49 * tileSize,
+      label: 'Pitchfork',
+      staminaCost: 0,
+      color: 0x8b6914,
+      size: 14,
+      spriteKey: 'pitchfork_sprite',
+      givesItem: { id: 'pitchfork', label: 'Pitchfork', spriteKey: 'pitchfork_sprite' },
+      onInteract: () => {},
+    });
+    this.interactionSystem.register(pitchfork);
+
+    // Coop cleaning spot (tile 9, 47) — requires pitchfork
+    const coopClean = new Interactable(this, {
+      id: 'coop-clean',
+      x: 9 * tileSize,
+      y: 47 * tileSize,
       label: 'Clean Coop',
       staminaCost: CONFIG.stamina.costs.cleanCoop,
       color: 0x8b6914,
       size: 14,
+      requiresItem: 'pitchfork',
+      requiresItemHint: 'Pick up the pitchfork first',
       onInteract: () => {
         this.coopCleaningSystem.clean();
         this.audioSystem.playSFX('clean');
       },
     });
-    this.interactionSystem.register(pitchfork);
+    this.interactionSystem.register(coopClean);
 
     // Treat dispenser (tile 12, 49)
     const treats = new Interactable(this, {
@@ -639,6 +657,7 @@ export class FarmScene extends Phaser.Scene {
       staminaCost: 1,
       color: 0xff8c00,
       size: 12,
+      spriteKey: 'treat_sprite',
       onInteract: () => {
         for (const chicken of this.chickenEntities) {
           chicken.hunger = Math.min(100, chicken.hunger + CONFIG.chickens.hunger.treatBoost);
@@ -687,11 +706,21 @@ export class FarmScene extends Phaser.Scene {
   }
 
   private createPhase2Interactables(tileSize: number) {
+    // ─── Well (center of farm) ───────
+    const well = new Interactable(this, {
+      id: 'well', x: 40 * tileSize, y: 28 * tileSize,
+      label: 'Well', staminaCost: 0,
+      color: 0x888888, size: 16, spriteKey: 'well_sprite',
+      givesItem: { id: 'water-bucket', label: 'Water Bucket', spriteKey: 'bucket_sprite' },
+      onInteract: () => {},
+    });
+    this.interactionSystem.register(well);
+
     // ─── Goat Pen Interactables ───────
     const goatFeeder = new Interactable(this, {
       id: 'goat-feeder', x: 25 * tileSize, y: 35 * tileSize,
       label: 'Feed Goats', staminaCost: CONFIG.stamina.costs.feedAnimal,
-      color: 0xdaa520, size: 16,
+      color: 0xdaa520, size: 16, spriteKey: 'feeder_sprite',
       onInteract: () => {
         for (const g of this.goatEntities) { g.feed(CONFIG.goats.hunger.feedFill); g.syncToStore(); }
       },
@@ -701,17 +730,21 @@ export class FarmScene extends Phaser.Scene {
     const goatWaterer = new Interactable(this, {
       id: 'goat-waterer', x: 30 * tileSize, y: 35 * tileSize,
       label: 'Water Goats', staminaCost: CONFIG.stamina.costs.waterAnimal,
-      color: 0x4169e1, size: 16,
+      color: 0x4169e1, size: 16, spriteKey: 'waterer_sprite',
+      requiresItem: 'water-bucket',
+      requiresItemHint: 'Fill a bucket at the well first',
       onInteract: () => {
-        for (const g of this.goatEntities) { g.water(CONFIG.goats.thirst.waterFill); g.syncToStore(); }
+        waterLevels.update(l => ({ ...l, 'goat-waterer': Math.min(100, (l['goat-waterer'] ?? 0) + CONFIG.water.bucketFill) }));
+        addNotification('Filled goat waterer!', 'positive');
       },
     });
     this.interactionSystem.register(goatWaterer);
+    this.addWaterBar('goat-waterer', 30 * tileSize, 35 * tileSize);
 
     const giveTreat = new Interactable(this, {
       id: 'goat-treat', x: 28 * tileSize, y: 38 * tileSize,
       label: 'Give Goat Treats', staminaCost: 1,
-      color: 0xff8c00, size: 12,
+      color: 0xff8c00, size: 12, spriteKey: 'treat_sprite',
       onInteract: () => {
         for (const g of this.goatEntities) {
           g.hunger = Math.min(100, g.hunger + CONFIG.goats.hunger.treatFill);
@@ -723,11 +756,11 @@ export class FarmScene extends Phaser.Scene {
     });
     this.interactionSystem.register(giveTreat);
 
-    // ─── Horse Barn/Paddock Interactables ───────
+    // ─── Horse Barn/Paddock Interactables (at barn door, south edge y=22) ───────
     const hayRack = new Interactable(this, {
-      id: 'horse-hay', x: 8 * tileSize, y: 17 * tileSize,
+      id: 'horse-hay', x: 8 * tileSize, y: 24 * tileSize,
       label: 'Feed Hay', staminaCost: CONFIG.stamina.costs.feedAnimal,
-      color: 0xdaa520, size: 16,
+      color: 0xdaa520, size: 16, spriteKey: 'feeder_sprite',
       onInteract: () => {
         for (const h of this.horseEntities) { h.feed(CONFIG.horses.hunger.hayFill); h.syncToStore(); }
       },
@@ -735,31 +768,48 @@ export class FarmScene extends Phaser.Scene {
     this.interactionSystem.register(hayRack);
 
     const horseTrough = new Interactable(this, {
-      id: 'horse-water', x: 12 * tileSize, y: 26 * tileSize,
+      id: 'horse-water', x: 12 * tileSize, y: 24 * tileSize,
       label: 'Fill Horse Trough', staminaCost: CONFIG.stamina.costs.waterAnimal,
-      color: 0x4169e1, size: 16,
+      color: 0x4169e1, size: 16, spriteKey: 'waterer_sprite',
+      requiresItem: 'water-bucket',
+      requiresItemHint: 'Fill a bucket at the well first',
       onInteract: () => {
-        for (const h of this.horseEntities) { h.water(CONFIG.horses.thirst.waterFill); h.syncToStore(); }
+        waterLevels.update(l => ({ ...l, 'horse-water': Math.min(100, (l['horse-water'] ?? 0) + CONFIG.water.bucketFill) }));
+        addNotification('Horse trough filled!', 'positive');
       },
     });
     this.interactionSystem.register(horseTrough);
+    this.addWaterBar('horse-water', 12 * tileSize, 24 * tileSize);
 
-    const brush = new Interactable(this, {
-      id: 'horse-brush', x: 10 * tileSize, y: 17 * tileSize,
-      label: 'Brush Horse', staminaCost: CONFIG.stamina.costs.brushHorse,
+    // Brush pickup
+    const brushSource = new Interactable(this, {
+      id: 'brush-source', x: 10 * tileSize, y: 24 * tileSize,
+      label: 'Horse Brush', staminaCost: 0,
       color: 0xaa8844, size: 14,
+      givesItem: { id: 'brush', label: 'Brush', spriteKey: 'brush_sprite' },
+      onInteract: () => {},
+    });
+    this.interactionSystem.register(brushSource);
+
+    // Brush use spot (in paddock, near horses)
+    const brushUse = new Interactable(this, {
+      id: 'horse-brush-use', x: 10 * tileSize, y: 26 * tileSize,
+      label: 'Brush Horses', staminaCost: CONFIG.stamina.costs.brushHorse,
+      color: 0xaa8844, size: 14,
+      requiresItem: 'brush',
+      requiresItemHint: 'Pick up the brush first',
       onInteract: () => {
         for (const h of this.horseEntities) { h.brush(CONFIG.horses.coat.brushBoost); h.syncToStore(); }
         addNotification('Horses groomed! Coats looking shiny.', 'positive');
       },
     });
-    this.interactionSystem.register(brush);
+    this.interactionSystem.register(brushUse);
 
     // ─── Cat Interactables (near farmhouse) ───────
     const catFood = new Interactable(this, {
-      id: 'cat-food', x: 46 * tileSize, y: 48 * tileSize,
+      id: 'cat-food', x: 44 * tileSize, y: 46 * tileSize,
       label: 'Feed Cats', staminaCost: CONFIG.stamina.costs.feedAnimal,
-      color: 0xdaa520, size: 14,
+      color: 0xdaa520, size: 14, spriteKey: 'feeder_sprite',
       onInteract: () => {
         for (const c of this.catEntities) { c.feed(CONFIG.cats.hunger.feedFill); c.syncToStore(); }
       },
@@ -767,17 +817,21 @@ export class FarmScene extends Phaser.Scene {
     this.interactionSystem.register(catFood);
 
     const catWater = new Interactable(this, {
-      id: 'cat-water', x: 46 * tileSize, y: 50 * tileSize,
+      id: 'cat-water', x: 44 * tileSize, y: 48 * tileSize,
       label: 'Water Cats', staminaCost: CONFIG.stamina.costs.waterAnimal,
-      color: 0x4169e1, size: 14,
+      color: 0x4169e1, size: 14, spriteKey: 'waterer_sprite',
+      requiresItem: 'water-bucket',
+      requiresItemHint: 'Fill a bucket at the well first',
       onInteract: () => {
-        for (const c of this.catEntities) { c.water(CONFIG.cats.thirst.waterFill); c.syncToStore(); }
+        waterLevels.update(l => ({ ...l, 'cat-water': Math.min(100, (l['cat-water'] ?? 0) + CONFIG.water.bucketFill) }));
+        addNotification('Cat water bowl filled!', 'positive');
       },
     });
     this.interactionSystem.register(catWater);
+    this.addWaterBar('cat-water', 44 * tileSize, 48 * tileSize);
 
     const petCat = new Interactable(this, {
-      id: 'pet-cat', x: 47 * tileSize, y: 49 * tileSize,
+      id: 'pet-cat', x: 45 * tileSize, y: 47 * tileSize,
       label: 'Pet Cats', staminaCost: CONFIG.stamina.costs.petCat,
       color: 0xff69b4, size: 14,
       onInteract: () => {
@@ -813,5 +867,128 @@ export class FarmScene extends Phaser.Scene {
     rect.setVisible(false);
     this.physics.add.existing(rect, true);
     this.collisionGroup.add(rect);
+  }
+
+  /** Add a togglable collision rect that can be removed (for gates) */
+  private addGateCollider(id: string, x: number, y: number, w: number, h: number) {
+    const rect = this.add.rectangle(x + w / 2, y + h / 2, w, h);
+    rect.setVisible(false);
+    this.physics.add.existing(rect, true);
+    this.collisionGroup.add(rect);
+    this.gateColliders.set(id, rect);
+  }
+
+  private toggleGate(gateId: string) {
+    const rect = this.gateColliders.get(gateId);
+    if (!rect) return;
+    const states = get(gateStates);
+    const isOpen = states[gateId] ?? false;
+    const newState = !isOpen;
+    gateStates.update(s => ({ ...s, [gateId]: newState }));
+
+    // Enable/disable the collision body
+    const body = rect.body as Phaser.Physics.Arcade.StaticBody;
+    body.enable = !newState; // When gate is open, disable collision
+
+    addNotification(newState ? 'Gate opened.' : 'Gate closed.', 'info');
+  }
+
+  // ─── Water Level Bars ──────────────────────────────────
+
+  addWaterBar(watererId: string, x: number, y: number) {
+    const barWidth = 24;
+    const barHeight = 4;
+    const offsetY = 16; // below the waterer sprite
+
+    const bg = this.add.rectangle(x, y + offsetY, barWidth, barHeight, 0x333333, 0.8);
+    bg.setDepth(2);
+    const fill = this.add.rectangle(x - barWidth / 2, y + offsetY, 0, barHeight, 0x4488cc, 0.9);
+    fill.setOrigin(0, 0.5);
+    fill.setDepth(2);
+
+    this.waterBars.set(watererId, { bg, fill });
+  }
+
+  private updateWaterBars() {
+    const levels = get(waterLevels);
+    for (const [id, bar] of this.waterBars.entries()) {
+      const level = levels[id] ?? 0;
+      const maxWidth = 24;
+      bar.fill.width = (level / 100) * maxWidth;
+
+      // Color based on level
+      if (level <= 10) {
+        bar.fill.setFillStyle(0xe74c3c, 0.9); // red
+      } else if (level <= 30) {
+        bar.fill.setFillStyle(0xf39c12, 0.9); // orange
+      } else {
+        bar.fill.setFillStyle(0x4488cc, 0.9); // blue
+      }
+    }
+  }
+
+  // ─── Fences & Gates ────────────────────────────────────
+
+  private createFences(tileSize: number) {
+    const T = tileSize;
+    const gateWidth = 3 * T; // 3-tile wide gate openings
+
+    // ─── Chicken Yard (4,36 → 18,44) ───────
+    // North wall
+    this.addCollisionRect(4 * T, 36 * T, 14 * T, T);
+    // East wall
+    this.addCollisionRect(17 * T, 36 * T, T, 8 * T);
+    // South wall — split for gate at x=9-12
+    this.addCollisionRect(4 * T, 43 * T, 5 * T, T);    // left of gate
+    this.addGateCollider('gate-chicken-yard', 9 * T, 43 * T, gateWidth, T);
+    this.addCollisionRect(12 * T, 43 * T, 6 * T, T);   // right of gate
+    // West: world perimeter handles this
+
+    // Gate interactable
+    const chickenGate = new Interactable(this, {
+      id: 'gate-chicken-yard', x: 10 * T + T / 2, y: 43 * T,
+      label: 'Open/Close Gate', staminaCost: 0,
+      color: 0x8b6914, size: 12, spriteKey: 'door_closed',
+      onInteract: () => this.toggleGate('gate-chicken-yard'),
+    });
+    this.interactionSystem.register(chickenGate);
+
+    // ─── Paddock (4,22 → 20,32) ───────
+    // North: barn handles this (solid zone)
+    // East wall
+    this.addCollisionRect(19 * T, 22 * T, T, 10 * T);
+    // South wall — split for gate at x=9-12
+    this.addCollisionRect(4 * T, 31 * T, 5 * T, T);
+    this.addGateCollider('gate-paddock', 9 * T, 31 * T, gateWidth, T);
+    this.addCollisionRect(12 * T, 31 * T, 8 * T, T);
+    // West: world perimeter
+
+    const paddockGate = new Interactable(this, {
+      id: 'gate-paddock', x: 10 * T + T / 2, y: 31 * T,
+      label: 'Open/Close Gate', staminaCost: 0,
+      color: 0x8b6914, size: 12, spriteKey: 'door_closed',
+      onInteract: () => this.toggleGate('gate-paddock'),
+    });
+    this.interactionSystem.register(paddockGate);
+
+    // ─── Goat Pen (22,32 → 34,42) ───────
+    // North wall
+    this.addCollisionRect(22 * T, 32 * T, 12 * T, T);
+    // East wall
+    this.addCollisionRect(33 * T, 32 * T, T, 10 * T);
+    // South wall
+    this.addCollisionRect(22 * T, 41 * T, 12 * T, T);
+    // West wall — split for gate at y=36-39
+    this.addCollisionRect(22 * T, 32 * T, T, 4 * T);   // above gate
+    this.addGateCollider('gate-goat-pen', 22 * T, 36 * T, T, gateWidth);
+    this.addCollisionRect(22 * T, 39 * T, T, 3 * T);   // below gate
+
+    const goatGate = new Interactable(this, {
+      id: 'gate-goat-pen', x: 22 * T, y: 37 * T + T / 2,
+      label: 'Open/Close Gate', staminaCost: 0,
+      color: 0x8b6914, size: 12, spriteKey: 'door_closed',
+      onInteract: () => this.toggleGate('gate-goat-pen'),
+    });
+    this.interactionSystem.register(goatGate);
   }
 }

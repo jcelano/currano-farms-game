@@ -28,7 +28,10 @@ export class GoatMischiefSystem {
     if (hour !== this.lastHour) {
       this.lastHour = hour;
       for (const goat of this.goatEntities) {
-        goat.mischief = Math.min(100, goat.mischief + CONFIG.goats.mischief.growthPerHour);
+        const growth = goat.personality === 'troublemaker'
+          ? CONFIG.goats.mischief.growthPerHour * CONFIG.goats.mischief.troublemakerGrowthMultiplier
+          : CONFIG.goats.mischief.growthPerHour;
+        goat.mischief = Math.min(100, goat.mischief + growth);
         goat.syncToStore();
       }
     }

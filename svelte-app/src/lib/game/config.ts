@@ -144,7 +144,7 @@ export const CONFIG = {
   // ─── GOATS ─────────────────────────────────────────────
   goats: {
     defaults: [
-      { name: 'Lela', breed: 'Nigerian Dwarf', color: 0x8b6340, personality: 'curious' as const },
+      { name: 'Lela', breed: 'Nigerian Dwarf', color: 0x8b6340, personality: 'troublemaker' as const },
       { name: 'Tiki', breed: 'Nigerian Dwarf', color: 0x2a2a2a, personality: 'mellow' as const },
       { name: 'Spike', breed: 'Nigerian Dwarf', color: 0x888888, personality: 'escape-artist' as const },
     ],
@@ -158,6 +158,7 @@ export const CONFIG = {
       escapeSuccessChance: { goodFence: 0.05, damagedFence: 0.30, brokenFence: 0.80 },
       gardenDamagePerSecond: 5,
       spikeEscapeBonus: 0.10,
+      troublemakerGrowthMultiplier: 1.8, // Lela grows mischief faster
     },
     hoof: { decayPerDay: 1.0, trimReset: 100, trimIntervalDays: 42 },
   },
@@ -265,5 +266,13 @@ export const CONFIG = {
   interaction: {
     proximityRadius: 90,
     cooldownMs: 500,
+  },
+
+  // ─── WATER SYSTEM ─────────────────────────────────────
+  water: {
+    drainPerHour: 3,           // waterers lose 3% per game hour
+    bucketFill: 50,            // each bucket adds 50%
+    animalDrinkThreshold: 10,  // animals can't drink below this
+    animalDrinkRate: 5,        // amount consumed per animal per hour
   },
 };
