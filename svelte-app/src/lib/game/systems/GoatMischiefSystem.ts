@@ -5,15 +5,19 @@ import { fenceSections, gameTime, get, addNotification } from '$lib/stores/gameS
 import { ZONE_DEFS } from './ZoneManager';
 
 const TILE = 32;
-const GARDEN_BOUNDS = (() => {
-  const z = ZONE_DEFS.find(z => z.name === 'veg_garden')!;
-  return { minX: z.x * TILE, maxX: (z.x + z.width) * TILE, minY: z.y * TILE, maxY: (z.y + z.height) * TILE };
-})();
 
 const PEN_BOUNDS = (() => {
   const z = ZONE_DEFS.find(z => z.name === 'goat_pen')!;
   return { minX: z.x * TILE + 10, maxX: (z.x + z.width) * TILE - 10, minY: z.y * TILE + 10, maxY: (z.y + z.height) * TILE - 10 };
 })();
+
+// When escaped, goats roam freely in a wide area around the pen
+const ROAM_BOUNDS = {
+  minX: 10 * TILE,
+  maxX: 60 * TILE,
+  minY: 20 * TILE,
+  maxY: 50 * TILE,
+};
 
 export class GoatMischiefSystem {
   private lastHour = -1;
@@ -43,26 +47,19 @@ export class GoatMischiefSystem {
 
     for (const goat of this.goatEntities) {
       if (goat.escaped) {
-        // Goat is loose — check if in garden zone (raids crops)
-        if (this.isInGarden(goat)) {
-          addNotification(`${goat.goatName} is eating your vegetables!`, 'danger');
-        }
+        addNotification(`${goat.goatName} is wandering the farm!`, 'warning');
         continue;
       }
 
       if (goat.mischief < CONFIG.goats.mischief.escapeAttemptThreshold) continue;
 
-      // Try to escape
       this.attemptEscape(goat);
     }
   }
 
   private attemptEscape(goat: Goat) {
     const sections = get(fenceSections);
-    // Goat pen uses fence sections 7-10
     const penFences = [7, 8, 9, 10].map(i => ({ index: i, health: sections[i - 1] ?? 100 }));
-
-    // Find weakest fence
     const weakest = penFences.reduce((a, b) => a.health < b.health ? a : b);
 
     let chance: number;
@@ -74,12 +71,10 @@ export class GoatMischiefSystem {
       chance = CONFIG.goats.mischief.escapeSuccessChance.goodFence;
     }
 
-    // Spike gets escape bonus
     if (goat.personality === 'escape-artist') {
       chance += CONFIG.goats.mischief.spikeEscapeBonus;
     }
 
-    // Damage the fence from testing
     fenceSections.update(s => {
       s[weakest.index - 1] = Math.max(0, s[weakest.index - 1] - CONFIG.fences.goatTestDamage);
       return [...s];
@@ -87,14 +82,11 @@ export class GoatMischiefSystem {
 
     if (Math.random() < chance) {
       goat.escaped = true;
-      // Move goat toward garden
-      goat.setBounds({
-        minX: GARDEN_BOUNDS.minX - 100,
-        maxX: GARDEN_BOUNDS.maxX + 100,
-        minY: GARDEN_BOUNDS.minY - 100,
-        maxY: GARDEN_BOUNDS.maxY + 100,
-      });
-      goat.setPosition(GARDEN_BOUNDS.minX + 50, GARDEN_BOUNDS.minY + 50);
+      goat.setBounds(ROAM_BOUNDS);
+      goat.setPosition(
+        ROAM_BOUNDS.minX + Phaser.Math.Between(50, 200),
+        ROAM_BOUNDS.minY + Phaser.Math.Between(50, 200),
+      );
       addNotification(`${goat.goatName} escaped from the pen!`, 'danger');
     } else {
       addNotification(`${goat.goatName} is testing the fences...`, 'warning');
@@ -112,10 +104,5 @@ export class GoatMischiefSystem {
     );
     goat.syncToStore();
     addNotification(`${goat.goatName} has been returned to the pen.`, 'positive');
-  }
-
-  private isInGarden(goat: Goat): boolean {
-    return goat.x >= GARDEN_BOUNDS.minX && goat.x <= GARDEN_BOUNDS.maxX &&
-           goat.y >= GARDEN_BOUNDS.minY && goat.y <= GARDEN_BOUNDS.maxY;
   }
 }

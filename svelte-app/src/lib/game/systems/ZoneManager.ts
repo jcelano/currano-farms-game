@@ -25,8 +25,6 @@ export const ZONE_DEFS: ZoneDefinition[] = [
   { name: 'paddock', x: 4, y: 22, width: 16, height: 10, color: 0x7ccd7c, label: 'Paddock' },
   // Goat Pen (center-left)
   { name: 'goat_pen', x: 22, y: 32, width: 12, height: 10, color: 0xdaa520, label: 'Goat Pen' },
-  // Vegetable Garden (center-right)
-  { name: 'veg_garden', x: 36, y: 32, width: 12, height: 10, color: 0x228b22, label: 'Vegetable Garden' },
   // Flower Garden (right, near farmhouse)
   { name: 'flower_garden', x: 48, y: 40, width: 10, height: 6, color: 0xff69b4, label: 'Flower Garden' },
   // Grape Orchard (upper-center)

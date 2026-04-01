@@ -1,10 +1,12 @@
 <script lang="ts">
   import { interactionPrompt, gameReady } from '$lib/stores/gameStore';
+
+  const isMobile = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 </script>
 
 {#if $gameReady && $interactionPrompt}
   <div class="prompt" class:unavailable={!$interactionPrompt.available}>
-    <span class="key">[Space]</span>
+    <span class="key">{isMobile ? '[Tap]' : '[Space]'}</span>
     <span class="label">{$interactionPrompt.label}</span>
     {#if $interactionPrompt.cost > 0}
       <span class="cost">(-{$interactionPrompt.cost} stamina)</span>
@@ -34,6 +36,14 @@
     gap: 8px;
     white-space: nowrap;
     animation: fadeIn 0.15s ease-out;
+  }
+
+  @media (max-width: 600px) {
+    .prompt {
+      bottom: 120px;
+      font-size: 11px;
+      padding: 6px 12px;
+    }
   }
 
   @keyframes fadeIn {

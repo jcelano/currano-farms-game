@@ -145,10 +145,9 @@
   .girl-preview {
     background: linear-gradient(
       to bottom,
-      #cc4444 0%, #cc4444 8%,
-      #aa3322 8%, #aa3322 15%,
+      #cc3318 0%, #cc3318 15%,
       #f5cba7 15%, #f5cba7 35%,
-      #3a8a4a 35%, #3a8a4a 60%,
+      #4a6fa5 35%, #4a6fa5 60%,
       #4a6fa5 60%, #4a6fa5 82%,
       #5c3a1e 82%, #5c3a1e 100%
     );

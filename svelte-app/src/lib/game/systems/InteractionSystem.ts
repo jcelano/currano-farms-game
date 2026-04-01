@@ -31,6 +31,7 @@ export class InteractionSystem {
   private catEntities: Cat[] = [];
   private cooldownTimer = 0;
   private currentInteractable: Interactable | null = null;
+  private petTargetCat: Cat | null = null;
   private lastNearbyChicken: Chicken | null = null;
   private lastNearbyGoat: Goat | null = null;
   private lastNearbyHorse: Horse | null = null;
@@ -79,6 +80,7 @@ export class InteractionSystem {
           available = false;
         } else {
           label = `Pick up ${closest.givesItem.label}`;
+          available = true; // Pickups are always available (no stamina cost)
         }
       } else if (closest.requiresItem) {
         // Requires an item to use
@@ -90,7 +92,20 @@ export class InteractionSystem {
 
       interactionPrompt.set({ label, cost: closest.staminaCost, available });
     } else {
-      interactionPrompt.set(null);
+      // No interactable nearby — check if we can pet a nearby cat
+      let closestCatForPet: Cat | null = null;
+      let catPetDist = Infinity;
+      for (const c of this.catEntities) {
+        const d = c.distanceTo(pos.x, pos.y);
+        if (d < 60 && d < catPetDist) { closestCatForPet = c; catPetDist = d; }
+      }
+      if (closestCatForPet) {
+        this.petTargetCat = closestCatForPet;
+        interactionPrompt.set({ label: `Pet ${closestCatForPet.catName}`, cost: 0, available: true });
+      } else {
+        this.petTargetCat = null;
+        interactionPrompt.set(null);
+      }
     }
 
     // ─── Find nearby animals for info panels ──────────────
@@ -232,8 +247,35 @@ export class InteractionSystem {
   }
 
   tryInteract(): boolean {
-    if (!this.currentInteractable) return false;
     if (this.cooldownTimer > 0) return false;
+
+    // Leash escaped goat if carrying leash and near escaped goat
+    if (hasItem('leash')) {
+      const pos = get(playerPosition);
+      for (const goat of this.goatEntities) {
+        if (goat.escaped && goat.distanceTo(pos.x, pos.y) < 60) {
+          removeFromInventory('leash');
+          // Return goat — use game event so GoatMischiefSystem handles it
+          goat.escaped = false;
+          goat.mischief = Math.max(0, goat.mischief - 20);
+          goat.syncToStore();
+          addNotification(`${goat.goatName} has been leashed and returned to the pen!`, 'positive');
+          this.cooldownTimer = CONFIG.interaction.cooldownMs;
+          return true;
+        }
+      }
+    }
+
+    // Pet cat if no interactable but cat is nearby
+    if (!this.currentInteractable && this.petTargetCat) {
+      this.petTargetCat.pet(CONFIG.cats.attention.petBoost);
+      this.petTargetCat.syncToStore();
+      addNotification(`${this.petTargetCat.catName} purrs happily!`, 'positive');
+      this.cooldownTimer = CONFIG.interaction.cooldownMs;
+      return true;
+    }
+
+    if (!this.currentInteractable) return false;
 
     const inter = this.currentInteractable;
     const stamina = get(playerStamina);

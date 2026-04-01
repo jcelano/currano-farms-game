@@ -91,6 +91,23 @@
     background: rgba(0, 0, 0, 0.9);
   }
 
+  @media (max-width: 600px) {
+    .journal-toggle {
+      top: auto;
+      bottom: 140px;
+      right: 50px;
+      min-width: 36px;
+      min-height: 36px;
+    }
+    .journal-panel {
+      top: auto;
+      bottom: 180px;
+      right: 8px;
+      width: min(260px, 80vw);
+      max-height: 200px;
+    }
+  }
+
   .journal-panel {
     position: absolute;
     top: 40px;

@@ -83,4 +83,11 @@
     font-size: 9px;
     color: #f0e68c;
   }
+
+  @media (max-width: 600px) {
+    .inventory-hud {
+      bottom: 140px;
+      font-size: 10px;
+    }
+  }
 </style>

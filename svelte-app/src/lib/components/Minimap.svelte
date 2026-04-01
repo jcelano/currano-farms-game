@@ -93,4 +93,11 @@
     background: rgba(0, 0, 0, 0.7);
     padding: 2px 4px;
   }
+
+  @media (max-width: 600px) {
+    .minimap-container {
+      transform: scale(0.7);
+      transform-origin: top right;
+    }
+  }
 </style>

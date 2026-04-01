@@ -60,6 +60,7 @@ export class FarmScene extends Phaser.Scene {
   private waterSystem!: WaterSystem;
   private waterBars: Map<string, { bg: Phaser.GameObjects.Rectangle; fill: Phaser.GameObjects.Rectangle }> = new Map();
   private gateColliders: Map<string, Phaser.GameObjects.Rectangle> = new Map();
+  private gateVisuals: Map<string, Phaser.GameObjects.Rectangle> = new Map();
 
   constructor() {
     super({ key: 'FarmScene' });
@@ -368,7 +369,7 @@ export class FarmScene extends Phaser.Scene {
       const h = zone.height * tileSize;
 
       const isBuilding = ['farmhouse', 'horse_barn', 'coop', 'equip_shed', 'hay_storage', 'feed_store'].includes(zone.name);
-      const isFenced = ['chicken_yard', 'paddock', 'goat_pen', 'veg_garden'].includes(zone.name);
+      const isFenced = ['chicken_yard', 'paddock', 'goat_pen'].includes(zone.name);
 
       if (isBuilding) {
         this.drawBuilding(gfx, x, y, w, h, zone.name, zone.color);
@@ -595,23 +596,8 @@ export class FarmScene extends Phaser.Scene {
   }
 
   private createCoopInteractables(tileSize: number) {
-    // Coop door (at entrance of coop — east side, tile 14, 48)
-    const door = new Interactable(this, {
-      id: 'coop-door',
-      x: 14 * tileSize,
-      y: 48 * tileSize,
-      label: 'Toggle Coop Door',
-      staminaCost: 0,
-      color: 0x8b4513,
-      size: 14,
-      spriteKey: 'door_closed',
-      onInteract: () => {
-        this.coopDoorSystem.toggle();
-      },
-    });
-    this.interactionSystem.register(door);
-
-    // Nesting area — eggs are now collected by walking over them
+    // Coop door is now handled by createFences() gate system
+    // Nesting area — eggs are collected by walking over them
   }
 
   private createSprint5Interactables(tileSize: number) {
@@ -695,11 +681,12 @@ export class FarmScene extends Phaser.Scene {
   }
 
   private spawnCats(tileSize: number) {
-    const farmhouseX = 50 * tileSize;
-    const farmhouseY = 46 * tileSize;
+    // Cats live in the barn area
+    const barnX = 10 * tileSize;
+    const barnY = 26 * tileSize;
     CONFIG.cats.defaults.forEach((def, i) => {
       const cat = new Cat(this, i, { name: def.name, color: def.color, pattern: def.pattern },
-        farmhouseX + Phaser.Math.Between(-50, 50), farmhouseY + Phaser.Math.Between(-50, 50));
+        barnX + Phaser.Math.Between(-30, 30), barnY + Phaser.Math.Between(-30, 30));
       this.catEntities.push(cat);
       cat.syncToStore();
     });
@@ -715,6 +702,16 @@ export class FarmScene extends Phaser.Scene {
       onInteract: () => {},
     });
     this.interactionSystem.register(well);
+
+    // ─── Leash (near barn entrance) ───────
+    const leash = new Interactable(this, {
+      id: 'leash-source', x: 16 * tileSize, y: 24 * tileSize,
+      label: 'Leash', staminaCost: 0,
+      color: 0xdaa520, size: 12, spriteKey: 'leash_sprite',
+      givesItem: { id: 'leash', label: 'Leash', spriteKey: 'leash_sprite' },
+      onInteract: () => {},
+    });
+    this.interactionSystem.register(leash);
 
     // ─── Goat Pen Interactables ───────
     const goatFeeder = new Interactable(this, {
@@ -807,7 +804,7 @@ export class FarmScene extends Phaser.Scene {
 
     // ─── Cat Interactables (near farmhouse) ───────
     const catFood = new Interactable(this, {
-      id: 'cat-food', x: 44 * tileSize, y: 46 * tileSize,
+      id: 'cat-food', x: 6 * tileSize, y: 24 * tileSize,
       label: 'Feed Cats', staminaCost: CONFIG.stamina.costs.feedAnimal,
       color: 0xdaa520, size: 14, spriteKey: 'feeder_sprite',
       onInteract: () => {
@@ -817,7 +814,7 @@ export class FarmScene extends Phaser.Scene {
     this.interactionSystem.register(catFood);
 
     const catWater = new Interactable(this, {
-      id: 'cat-water', x: 44 * tileSize, y: 48 * tileSize,
+      id: 'cat-water', x: 6 * tileSize, y: 26 * tileSize,
       label: 'Water Cats', staminaCost: CONFIG.stamina.costs.waterAnimal,
       color: 0x4169e1, size: 14, spriteKey: 'waterer_sprite',
       requiresItem: 'water-bucket',
@@ -828,18 +825,9 @@ export class FarmScene extends Phaser.Scene {
       },
     });
     this.interactionSystem.register(catWater);
-    this.addWaterBar('cat-water', 44 * tileSize, 48 * tileSize);
+    this.addWaterBar('cat-water', 6 * tileSize, 26 * tileSize);
 
-    const petCat = new Interactable(this, {
-      id: 'pet-cat', x: 45 * tileSize, y: 47 * tileSize,
-      label: 'Pet Cats', staminaCost: CONFIG.stamina.costs.petCat,
-      color: 0xff69b4, size: 14,
-      onInteract: () => {
-        for (const c of this.catEntities) { c.pet(CONFIG.cats.attention.petBoost); c.syncToStore(); }
-        addNotification('The cats purr happily!', 'positive');
-      },
-    });
-    this.interactionSystem.register(petCat);
+    // Pet cats: handled by walk-up proximity in InteractionSystem
 
     // ─── Fence Repair (near goat pen) ───────
     const fenceRepair = new Interactable(this, {
@@ -869,13 +857,19 @@ export class FarmScene extends Phaser.Scene {
     this.collisionGroup.add(rect);
   }
 
-  /** Add a togglable collision rect that can be removed (for gates) */
+  /** Add a togglable collision rect with a visible gate marker */
   private addGateCollider(id: string, x: number, y: number, w: number, h: number) {
     const rect = this.add.rectangle(x + w / 2, y + h / 2, w, h);
     rect.setVisible(false);
     this.physics.add.existing(rect, true);
     this.collisionGroup.add(rect);
     this.gateColliders.set(id, rect);
+
+    // Visible gate bar (brown when closed)
+    const visual = this.add.rectangle(x + w / 2, y + h / 2, w, h, 0x8b6914, 0.9);
+    visual.setDepth(3);
+    visual.setStrokeStyle(1, 0x5c3a1e, 1);
+    this.gateVisuals.set(id, visual);
   }
 
   private toggleGate(gateId: string) {
@@ -888,7 +882,19 @@ export class FarmScene extends Phaser.Scene {
 
     // Enable/disable the collision body
     const body = rect.body as Phaser.Physics.Arcade.StaticBody;
-    body.enable = !newState; // When gate is open, disable collision
+    body.enable = !newState;
+
+    // Show/hide the visual gate bar
+    const visual = this.gateVisuals.get(gateId);
+    if (visual) {
+      if (newState) {
+        visual.setAlpha(0.2); // Faded = open
+        visual.setFillStyle(0x4a8a4a, 0.3); // Green tint when open
+      } else {
+        visual.setAlpha(0.9); // Solid = closed
+        visual.setFillStyle(0x8b6914, 0.9); // Brown when closed
+      }
+    }
 
     addNotification(newState ? 'Gate opened.' : 'Gate closed.', 'info');
   }
@@ -931,62 +937,66 @@ export class FarmScene extends Phaser.Scene {
 
   private createFences(tileSize: number) {
     const T = tileSize;
-    const gateWidth = 3 * T; // 3-tile wide gate openings
+    const gateW = 3 * T; // 3-tile wide gate openings
 
     // ─── Chicken Yard (4,36 → 18,44) ───────
-    // North wall
-    this.addCollisionRect(4 * T, 36 * T, 14 * T, T);
-    // East wall
-    this.addCollisionRect(17 * T, 36 * T, T, 8 * T);
-    // South wall — split for gate at x=9-12
-    this.addCollisionRect(4 * T, 43 * T, 5 * T, T);    // left of gate
-    this.addGateCollider('gate-chicken-yard', 9 * T, 43 * T, gateWidth, T);
-    this.addCollisionRect(12 * T, 43 * T, 6 * T, T);   // right of gate
-    // West: world perimeter handles this
-
-    // Gate interactable
+    this.addCollisionRect(4 * T, 36 * T, 14 * T, T);     // North wall
+    this.addCollisionRect(18 * T, 36 * T, T, 8 * T);      // East wall (outer edge)
+    // South wall — gate at east end (x=15-18) so it's reachable from outside
+    this.addCollisionRect(4 * T, 44 * T, 11 * T, T);      // left of gate
+    this.addGateCollider('gate-chicken-yard', 15 * T, 44 * T, gateW, T);
+    // Gate interactable at outer edge of south fence
     const chickenGate = new Interactable(this, {
-      id: 'gate-chicken-yard', x: 10 * T + T / 2, y: 43 * T,
+      id: 'gate-chicken-yard', x: 16 * T + T / 2, y: 44 * T + T / 2,
       label: 'Open/Close Gate', staminaCost: 0,
-      color: 0x8b6914, size: 12, spriteKey: 'door_closed',
+      color: 0x8b6914, size: 12,
       onInteract: () => this.toggleGate('gate-chicken-yard'),
     });
     this.interactionSystem.register(chickenGate);
 
-    // ─── Paddock (4,22 → 20,32) ───────
-    // North: barn handles this (solid zone)
-    // East wall
-    this.addCollisionRect(19 * T, 22 * T, T, 10 * T);
-    // South wall — split for gate at x=9-12
-    this.addCollisionRect(4 * T, 31 * T, 5 * T, T);
-    this.addGateCollider('gate-paddock', 9 * T, 31 * T, gateWidth, T);
-    this.addCollisionRect(12 * T, 31 * T, 8 * T, T);
-    // West: world perimeter
+    // ─── Coop (4,44 → 14,54) — player must open door to enter ───────
+    // East wall with gate (door) at y=48-51
+    this.addCollisionRect(14 * T, 44 * T, T, 4 * T);      // above door
+    this.addGateCollider('gate-coop', 14 * T, 48 * T, T, gateW);
+    this.addCollisionRect(14 * T, 51 * T, T, 3 * T);      // below door
+    // South wall
+    this.addCollisionRect(4 * T, 54 * T, 10 * T, T);
+    // Coop door interactable at outer edge
+    const coopGate = new Interactable(this, {
+      id: 'gate-coop', x: 14 * T + T / 2, y: 49 * T + T / 2,
+      label: 'Open/Close Coop Door', staminaCost: 0,
+      color: 0x8b4513, size: 14,
+      onInteract: () => {
+        this.toggleGate('gate-coop');
+        this.coopDoorSystem.toggle();
+      },
+    });
+    this.interactionSystem.register(coopGate);
 
+    // ─── Paddock (4,22 → 20,32) ───────
+    this.addCollisionRect(20 * T, 22 * T, T, 10 * T);     // East wall (outer edge)
+    // South wall — gate at east end (x=17-20) reachable from outside
+    this.addCollisionRect(4 * T, 32 * T, 13 * T, T);      // left of gate
+    this.addGateCollider('gate-paddock', 17 * T, 32 * T, gateW, T);
     const paddockGate = new Interactable(this, {
-      id: 'gate-paddock', x: 10 * T + T / 2, y: 31 * T,
+      id: 'gate-paddock', x: 18 * T + T / 2, y: 32 * T + T / 2,
       label: 'Open/Close Gate', staminaCost: 0,
-      color: 0x8b6914, size: 12, spriteKey: 'door_closed',
+      color: 0x8b6914, size: 12,
       onInteract: () => this.toggleGate('gate-paddock'),
     });
     this.interactionSystem.register(paddockGate);
 
     // ─── Goat Pen (22,32 → 34,42) ───────
-    // North wall
-    this.addCollisionRect(22 * T, 32 * T, 12 * T, T);
-    // East wall
-    this.addCollisionRect(33 * T, 32 * T, T, 10 * T);
-    // South wall
-    this.addCollisionRect(22 * T, 41 * T, 12 * T, T);
-    // West wall — split for gate at y=36-39
-    this.addCollisionRect(22 * T, 32 * T, T, 4 * T);   // above gate
-    this.addGateCollider('gate-goat-pen', 22 * T, 36 * T, T, gateWidth);
-    this.addCollisionRect(22 * T, 39 * T, T, 3 * T);   // below gate
-
+    this.addCollisionRect(22 * T, 32 * T, 12 * T, T);     // North wall
+    this.addCollisionRect(34 * T, 32 * T, T, 10 * T);     // East wall (outer edge)
+    this.addCollisionRect(22 * T, 42 * T, 12 * T, T);     // South wall
+    // West wall — gate at bottom (y=39-42) reachable from outside
+    this.addCollisionRect(22 * T, 32 * T, T, 7 * T);      // above gate
+    this.addGateCollider('gate-goat-pen', 22 * T, 39 * T, T, gateW);
     const goatGate = new Interactable(this, {
-      id: 'gate-goat-pen', x: 22 * T, y: 37 * T + T / 2,
+      id: 'gate-goat-pen', x: 22 * T - T / 2, y: 40 * T + T / 2,
       label: 'Open/Close Gate', staminaCost: 0,
-      color: 0x8b6914, size: 12, spriteKey: 'door_closed',
+      color: 0x8b6914, size: 12,
       onInteract: () => this.toggleGate('gate-goat-pen'),
     });
     this.interactionSystem.register(goatGate);

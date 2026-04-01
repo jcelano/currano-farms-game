@@ -116,15 +116,15 @@
   .interact-btn {
     position: fixed;
     bottom: 40px;
-    right: 30px;
-    width: 70px;
-    height: 70px;
+    right: 20px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
     background: rgba(76, 175, 80, 0.3);
-    border: 2px solid rgba(76, 175, 80, 0.5);
+    border: 3px solid rgba(76, 175, 80, 0.6);
     color: #4caf50;
     font-family: 'Courier New', monospace;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: bold;
     z-index: 150;
     touch-action: none;

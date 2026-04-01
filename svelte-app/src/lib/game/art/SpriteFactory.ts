@@ -104,23 +104,38 @@ export class SpriteFactory {
     gfx.fillRect(3, 26, 7, 6);
     gfx.fillRect(14, 26, 7, 6);
 
-    // Jeans
+    // Overall legs (denim blue)
     gfx.fillStyle(0x4a6fa5, 1);
     gfx.fillRect(4, 18, 7, 9);
     gfx.fillRect(13, 18, 7, 9);
 
-    // Green flannel shirt body
-    gfx.fillStyle(0x3a8a4a, 1);
-    gfx.fillRect(4, 10, 16, 9);
-    // Flannel stripes
-    gfx.fillStyle(0x2d6e3a, 1);
-    gfx.fillRect(4, 12, 16, 2);
-    gfx.fillRect(4, 16, 16, 2);
+    // White t-shirt (visible at top of overalls)
+    gfx.fillStyle(0xeeeeee, 1);
+    gfx.fillRect(4, 10, 16, 4);
 
-    // Arms
-    gfx.fillStyle(0x3a8a4a, 1);
-    gfx.fillRect(1, 11, 3, 7);
-    gfx.fillRect(20, 11, 3, 7);
+    // Overall bib (denim blue over t-shirt)
+    gfx.fillStyle(0x4a6fa5, 1);
+    gfx.fillRect(6, 12, 12, 7);
+    // Overall straps
+    gfx.fillRect(7, 10, 3, 3);
+    gfx.fillRect(14, 10, 3, 3);
+    // Overall pocket
+    gfx.fillStyle(0x3d5e8c, 1);
+    gfx.fillRect(9, 15, 6, 3);
+    // Overall button details
+    gfx.fillStyle(0xcccccc, 1);
+    gfx.fillRect(8, 11, 1, 1);
+    gfx.fillRect(15, 11, 1, 1);
+
+    // Arms (white t-shirt sleeves)
+    gfx.fillStyle(0xeeeeee, 1);
+    gfx.fillRect(1, 11, 3, 4);
+    gfx.fillRect(20, 11, 3, 4);
+
+    // Forearms (skin)
+    gfx.fillStyle(0xf5cba7, 1);
+    gfx.fillRect(1, 15, 3, 2);
+    gfx.fillRect(20, 15, 3, 2);
 
     // Hands
     gfx.fillStyle(0xf5cba7, 1);
@@ -131,27 +146,32 @@ export class SpriteFactory {
     gfx.fillStyle(0xf5cba7, 1);
     gfx.fillRect(6, 1, 12, 10);
 
-    // Red/auburn hair — longer, flowing
-    gfx.fillStyle(0xaa3322, 1);
+    // Long red hair — flowing past shoulders
+    gfx.fillStyle(0xcc3318, 1);
+    // Top of head
     gfx.fillRect(5, 0, 14, 4);
-    gfx.fillRect(4, 1, 3, 8);   // left side hair (longer)
-    gfx.fillRect(17, 1, 3, 8);  // right side hair (longer)
-    gfx.fillRect(5, 0, 14, 2);  // top
+    // Left side hair (long, past shoulders)
+    gfx.fillRect(3, 1, 4, 14);
+    // Right side hair (long, past shoulders)
+    gfx.fillRect(17, 1, 4, 14);
+    // Hair highlights
+    gfx.fillStyle(0xdd5533, 1);
+    gfx.fillRect(4, 3, 2, 8);
+    gfx.fillRect(18, 4, 2, 7);
 
-    // Eyes (slightly larger/greener)
+    // Eyes (green)
     gfx.fillStyle(0x2e7d32, 1);
     gfx.fillRect(8, 5, 2, 2);
     gfx.fillRect(14, 5, 2, 2);
 
-    // Mouth
+    // Freckles
+    gfx.fillStyle(0xd4a574, 1);
+    gfx.fillRect(9, 7, 1, 1);
+    gfx.fillRect(14, 7, 1, 1);
+
+    // Smile
     gfx.fillStyle(0xc0825a, 1);
     gfx.fillRect(10, 8, 4, 1);
-
-    // Bandana instead of hat
-    gfx.fillStyle(0xcc4444, 1);
-    gfx.fillRect(5, 0, 14, 2);
-    gfx.fillStyle(0xaa3333, 1);
-    gfx.fillRect(7, -1, 10, 1);
 
     gfx.generateTexture(key, w, h);
     gfx.destroy();
@@ -504,6 +524,38 @@ export class SpriteFactory {
       gfx.fillRect(8, 0, 1, 3);
       gfx.fillRect(5, 0, 4, 1);
       gfx.generateTexture('bucket_sprite', 14, 12);
+      gfx.destroy();
+    }
+
+    // Leash
+    if (!scene.textures.exists('leash_sprite')) {
+      const gfx = scene.add.graphics();
+      // Handle
+      gfx.fillStyle(0x8b4513, 1);
+      gfx.fillRect(1, 0, 4, 6);
+      // Rope
+      gfx.fillStyle(0xdaa520, 1);
+      gfx.fillRect(3, 5, 2, 8);
+      // Clip
+      gfx.fillStyle(0xcccccc, 1);
+      gfx.fillRect(2, 12, 4, 2);
+      gfx.generateTexture('leash_sprite', 8, 14);
+      gfx.destroy();
+    }
+
+    // Brush
+    if (!scene.textures.exists('brush_sprite')) {
+      const gfx = scene.add.graphics();
+      // Handle
+      gfx.fillStyle(0x8b6914, 1);
+      gfx.fillRect(4, 0, 4, 8);
+      // Bristles
+      gfx.fillStyle(0xdddddd, 1);
+      gfx.fillRect(2, 8, 8, 4);
+      gfx.fillStyle(0xbbbbbb, 1);
+      gfx.fillRect(3, 9, 2, 3);
+      gfx.fillRect(7, 9, 2, 3);
+      gfx.generateTexture('brush_sprite', 12, 12);
       gfx.destroy();
     }
   }

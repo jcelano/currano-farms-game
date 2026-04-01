@@ -45,12 +45,12 @@
         <section>
           <h3>🐔 Chickens</h3>
           <ul>
-            <li>Walk into the <b>Chicken Coop</b> to find the feeder</li>
+            <li>Open the <b>coop door</b> gate to enter the coop</li>
             <li>Walk near the feeder and press <kbd>Space</kbd> to feed</li>
             <li>To water: fill a bucket at the <b>Well</b>, then bring it to the coop waterer</li>
             <li><b>Eggs</b> appear in the coop — walk over them to pick them up</li>
             <li>Don't let eggs sit too long or they'll spoil!</li>
-            <li>Toggle the <b>coop door</b> to let chickens free-range (happier but vulnerable)</li>
+            <li>Opening the coop door lets chickens free-range (happier but vulnerable)</li>
             <li>Close the door before night to protect from predators</li>
           </ul>
         </section>
@@ -58,6 +58,7 @@
         <section>
           <h3>🐴 Horses</h3>
           <ul>
+            <li>Open the <b>paddock gate</b> to enter</li>
             <li>The hay rack is at the <b>barn door</b> — press <kbd>Space</kbd> to feed hay</li>
             <li>Pick up the <b>brush</b> at the barn door, then carry it to the paddock to groom</li>
             <li>Fill a bucket at the <b>Well</b>, then bring it to the horse trough in the paddock</li>
@@ -67,19 +68,21 @@
         <section>
           <h3>🐐 Goats</h3>
           <ul>
+            <li>Open the <b>goat pen gate</b> to enter — but close it behind you!</li>
             <li>Feed and give treats directly in the <b>Goat Pen</b></li>
             <li>To water: fill a bucket at the <b>Well</b>, bring it to the goat waterer</li>
             <li>Treats reduce <b>mischief</b> — high mischief means escape attempts!</li>
-            <li>Keep fences repaired or goats will break out and eat your garden</li>
+            <li>If a goat escapes, grab the <b>leash</b> (near barn), walk to the goat, and press <kbd>Space</kbd></li>
+            <li>Leaving gates open too long lets animals wander out!</li>
           </ul>
         </section>
 
         <section>
           <h3>🐱 Cats</h3>
           <ul>
-            <li>Cat food and petting station are near the <b>Farmhouse</b></li>
+            <li>Cat food and water are near the <b>Barn</b></li>
+            <li>To pet a cat, just walk up to it and press <kbd>Space</kbd></li>
             <li>To water: fill a bucket at the <b>Well</b>, bring it to the cat water bowl</li>
-            <li>Pet cats to keep their attention level up</li>
           </ul>
         </section>
 
@@ -164,6 +167,16 @@
   .help-toggle:hover {
     background: rgba(0, 0, 0, 0.9);
     border-color: #f0e68c;
+  }
+
+  @media (max-width: 600px) {
+    .help-toggle {
+      top: auto;
+      bottom: 140px;
+      right: 92px;
+      min-width: 36px;
+      min-height: 36px;
+    }
   }
 
   .help-backdrop {
