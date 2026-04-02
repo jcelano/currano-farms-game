@@ -72,13 +72,12 @@
     <button class="control" onclick={toggleSpeed}>
       {$gameSpeedMultiplier}x
     </button>
-    <button class="control" onclick={togglePause}>
-      {$gamePaused ? 'Play' : 'Pause'}
-    </button>
     <button class="control mute" onclick={toggleMute}>
-      {muted ? 'Unmute' : 'Mute'}
+      {muted ? '🔇' : '🔊'}
     </button>
   </div>
+  <!-- Always-visible menu button in top-right corner -->
+  <button class="menu-btn" onclick={togglePause} title="Menu / Settings">☰</button>
 {/if}
 
 <style>
@@ -146,5 +145,40 @@
   .mute {
     color: #ff9944;
     border-color: rgba(255, 153, 68, 0.3);
+  }
+
+  .menu-btn {
+    position: fixed;
+    top: 8px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    color: #f0e68c;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: all;
+    touch-action: manipulation;
+  }
+
+  .menu-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  @media (max-width: 600px) {
+    .menu-btn {
+      width: 48px;
+      height: 48px;
+      font-size: 22px;
+      top: 6px;
+      right: 6px;
+    }
   }
 </style>

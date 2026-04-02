@@ -21,8 +21,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private currentCharacter = '';
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    // SpriteFactory.generatePlayer() is called in BootScene
-    const key = 'player_placeholder';
+    // Pick correct initial texture from store so character loads right on game start
+    const initialChar = get(playerCharacter);
+    const key = initialChar === 'farmer-girl' ? 'player_girl' : 'player_placeholder';
 
     super(scene, x, y, key);
     scene.add.existing(this);
@@ -59,15 +60,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.carryIndicator.setDepth(7);
     this.carryIndicator.setVisible(false);
 
-    // Character swap subscription
-    this.currentCharacter = get(playerCharacter);
+    // Character swap subscription — apply texture on every change
+    this.currentCharacter = initialChar;
     playerCharacter.subscribe(char => {
-      if (char !== this.currentCharacter) {
-        this.currentCharacter = char;
-        const textureKey = char === 'farmer-girl' ? 'player_girl' : 'player_placeholder';
-        if (scene.textures.exists(textureKey)) {
-          this.setTexture(textureKey);
-        }
+      this.currentCharacter = char;
+      const textureKey = char === 'farmer-girl' ? 'player_girl' : 'player_placeholder';
+      if (scene.textures.exists(textureKey)) {
+        this.setTexture(textureKey);
       }
     });
 
